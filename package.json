@@ -1,0 +1,30 @@
+{
+  "name": "chaiwala-tycoon",
+  "productName": "Chaiwala Tycoon",
+  "version": "0.6.0",
+  "description": "Run a chai stall and become a tycoon.",
+  "main": "main.js",
+  "author": "Vijay",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.chaiwalatycoon.game",
+    "productName": "Chaiwala Tycoon",
+    "files": ["main.js", "www/**/*", "build/icon.png"],
+    "directories": { "buildResources": "build", "output": "dist" },
+    "win":   { "target": ["nsis", "portable"] },
+    "mac":   { "target": ["dmg"], "category": "public.app-category.games" },
+    "linux": { "target": ["AppImage"], "category": "Game" }
+  }
+}

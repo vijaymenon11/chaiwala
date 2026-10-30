@@ -1,0 +1,17 @@
+const {chromium}=require('playwright'); const D=require('os').tmpdir()+'/';
+(async()=>{const b=await chromium.launch();const p=await(await b.newContext({viewport:{width:480,height:900}})).newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});
+await p.goto('file://'+require('path').join(__dirname,'..','..','www','index.html'));await p.evaluate(()=>{localStorage.setItem('chaiwala-tycoon-settings',JSON.stringify({tutorialDone:true,sfx:false,music:false}))});await p.reload();
+console.log('classic start, city:',await p.evaluate(()=>state.city));
+await p.click('[data-act=reset]'); await p.screenshot({path:D+'v6_newgame.png',fullPage:true});
+await p.click('[data-act=startgame][data-city=mumbai][data-date="2025-06-01"]');
+console.log('mumbai state:',await p.evaluate(()=>[state.city,state.startDate,state.day,state.weather,state.forecast]));
+await p.evaluate(()=>{state.cash=20000; state.unlockedLocs=Object.keys(CONFIG.locations); for(const k of ['tea','milk','sugar']) buy(state,k,5); renderPrepare();});
+await p.screenshot({path:D+'v6_today.png'});
+await p.click('[data-act=tab][data-tab=places]'); const names=await p.evaluate(()=>[...document.querySelectorAll('.card.loc h3')].map(h=>h.innerText)); console.log('places:',names);
+await p.screenshot({path:D+'v6_places.png',fullPage:true});
+await p.click('[data-act=tab][data-tab=today]'); await p.click('[data-act=loc][data-id=station]'); await p.click('[data-act=open]'); await p.waitForTimeout(600); console.log('run caption:',await p.evaluate(()=>document.querySelector('.scene .cap').innerText));
+await p.click('[data-act=skip]'); await p.waitForSelector('[data-act=next]',{timeout:9000}); await p.click('[data-act=next]');
+console.log('after day 1:',await p.evaluate(()=>[state.day,cityDate(state).label,state.weather]));
+await p.reload(); console.log('reload keeps city:',await p.evaluate(()=>[state.city,state.day]));
+await p.click('[data-act=settings]'); await p.click('[data-act=newgame]'); console.log('settings -> chooser:',await p.evaluate(()=>ui.screen)); await p.click('[data-act=cancelnew]'); console.log('cancel keeps game:',await p.evaluate(()=>[ui.screen,state.city,state.day]));
+console.log('errors',e.length?e:'none'); await b.close();})();

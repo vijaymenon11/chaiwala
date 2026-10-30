@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>Chaiwala Tycoon</title>
+<style>
+  :root{
+    --brown:#5b3416; --chai:#a8662c; --marigold:#f5b11a; --teal:#12878a;
+    --cream:#fff4de; --paper:#fffaf0; --ink:#2d1b0c; --red:#c4452d;
+    --green:#2f8f4e; --line:#ead9bb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-tap-highlight-color:transparent}
+  #app{max-width:560px;margin:0 auto;padding:10px 12px 48px}
+  h1,h2,h3{margin:0}
+  small{color:#7a5c3a}
+
+  /* top bar */
+  .topbar{display:flex;gap:8px;position:sticky;top:0;z-index:5;padding:8px 0;background:var(--cream)}
+  .pill{flex:1;background:var(--brown);color:#fff;border-radius:14px;padding:6px 10px;text-align:center}
+  .pill small{display:block;color:#f3d9a8;font-size:.7rem}
+  .pill b{font-size:1.15rem}
+  .pill b.neg{color:#ff9d8a}
+
+  /* cards */
+  .card{background:#fff;border:2px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
+  .card h3{font-size:1.05rem;margin-bottom:6px;color:var(--brown)}
+  .gazette{background:var(--paper);border:2px dashed var(--chai);border-radius:12px;text-align:center;padding:10px;margin-top:6px}
+  .masthead{font-family:Georgia,serif;font-weight:700;letter-spacing:1px;color:var(--brown)}
+  .headline{font-family:Georgia,serif;font-style:italic;margin-top:4px}
+
+  /* buttons */
+  .btn{min-height:48px;border:0;border-radius:14px;font-size:1rem;font-weight:700;padding:10px 14px;
+    background:var(--teal);color:#fff;cursor:pointer}
+  .btn:active{transform:scale(.97)}
+  .btn.big{width:100%;min-height:60px;font-size:1.25rem;background:var(--marigold);color:var(--brown)}
+  .btn.ghost{background:#f3e7cf;color:var(--brown)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* stock rows */
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:0}
+  .row .info{flex:1;min-width:0}
+  .row .btns{display:flex;gap:6px}
+  .row .btns .btn{font-size:.85rem;padding:8px 10px;min-height:44px}
+
+  /* steppers */
+  .stepper{display:flex;align-items:center;gap:10px;margin:10px 0}
+  .stepper .val{flex:1;text-align:center}
+  .stepper .val b{display:block;font-size:1.1rem}
+  .stepper .val small{display:block}
+  .stepper .btn{width:54px;height:54px;border-radius:50%;font-size:1.7rem;padding:0}
+
+  .summary{background:var(--paper);border-radius:12px;padding:10px;line-height:1.6}
+  .good{color:var(--green);font-weight:700}
+  .bad{color:var(--red);font-weight:700}
+  .hint{font-size:.9rem;color:#7a5c3a;margin-top:8px;text-align:center}
+  details summary{cursor:pointer;font-weight:700;color:var(--brown);min-height:32px}
+  details ul{padding-left:18px;line-height:1.5;margin:6px 0}
+
+  /* run screen */
+  .scene{background:linear-gradient(#ffd98a,#ffe8b5);border-radius:16px;padding:12px;border:2px solid var(--line)}
+  .sign{text-align:center;font-weight:800;letter-spacing:2px;color:var(--brown)}
+  .stall{display:flex;align-items:flex-end;justify-content:center;gap:10px;font-size:3rem;margin:8px 0;position:relative}
+  .kettle.busy{animation:wobble .5s infinite alternate}
+  .steam{font-size:1.4rem;opacity:.0}
+  .busy + .steam{opacity:.8;animation:rise 1.2s infinite}
+  @keyframes wobble{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+  @keyframes rise{from{transform:translateY(4px);opacity:.9}to{transform:translateY(-12px);opacity:0}}
+  .queue{min-height:44px;font-size:1.7rem;text-align:center;letter-spacing:2px}
+  .clock{text-align:center;font-size:1.6rem;font-weight:800;color:var(--brown)}
+  .bar{height:10px;background:#f3e7cf;border-radius:6px;overflow:hidden;margin:6px 0}
+  .bar > i{display:block;height:100%;background:var(--teal);width:0}
+  .stats{display:flex;gap:8px;margin:10px 0}
+  .stats div{flex:1;background:#fff;border:2px solid var(--line);border-radius:12px;text-align:center;padding:8px}
+  .stats b{font-size:1.3rem;display:block}
+  .ticker{background:#fff;border:2px solid var(--line);border-radius:12px;padding:8px;min-height:190px}
+  .ticker div{padding:4px 2px;border-bottom:1px solid #f3e7cf;font-size:.95rem;animation:pop .25s}
+  .ticker div:last-child{border-bottom:0}
+  .ticker .info{color:var(--teal);font-weight:700}
+  .ticker .pass{color:#8b6b4a}
+  .ticker .lost{color:var(--red)}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .controls{display:flex;gap:8px;margin-top:10px}
+  .controls .btn{flex:1}
+  .controls .btn.active{background:var(--brown)}
+
+  /* report */
+  .verdict{text-align:center}
+  .verdict h2{font-size:1.5rem;color:var(--brown)}
+  .table{width:100%;border-collapse:collapse}
+  .table td{padding:6px 2px;border-top:1px solid var(--line)}
+  .table td:last-child{text-align:right;font-weight:700}
+  .table tr.total td{border-top:2px solid var(--brown);font-size:1.2rem}
+  .repbar{height:14px;background:#f3e7cf;border-radius:8px;overflow:hidden;margin:6px 0}
+  .repbar > i{display:block;height:100%;background:var(--marigold)}
+  ul.fb{padding-left:18px;line-height:1.6;margin:6px 0}
+
+  /* weather (v0.2) */
+  .forecast{display:flex;gap:12px;align-items:center}
+  .wx-big{font-size:3rem;line-height:1}
+  .scene.wx-hot{background:linear-gradient(#ffb347,#ffd9a0)}
+  .scene.wx-cloudy{background:linear-gradient(#cfd8dc,#eceff1)}
+  .scene.wx-rain{background:linear-gradient(#90a4ae,#cfd8dc)}
+  .scene.wx-cold{background:linear-gradient(#b3d4e8,#e3f1f8)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =====================================================================
+   CHAIWALA TYCOON — MVP (roadmap section 13)
+   Layout of this file:
+     1. CONFIG   – every number you might want to tune lives here
+     2. STATE    – the player's save data (plain object)
+     3. LOGIC    – pure game math, no DOM
+     4. UI       – rendering + input, no game math
+   ===================================================================== */
+
+/* =====================================================================
+   1. CONFIG  (tweak balance here, never in the logic)
+   ===================================================================== */
+const CONFIG = {
+  startCash: 500,           // ₹ at the very start
+  restartCash: 300,         // ₹ udhaar after going bankrupt
+  startReputation: 50,      // 0..100
+  rentPerDay: 30,           // cart rent, paid in the evening
+
+  // ---- the day ----
+  dayStartHour: 6,          // stall opens 6 AM...
+  dayHours: 12,             // ...and closes 6 PM
+  // Relative footfall per hour (6AM..5PM). Bigger = busier. Morning & evening rush.
+  hourWeights: [1, 2.5, 3, 1.5, 1, 1, 1.5, 1, 1, 1.5, 2.5, 3],
+  basePassersby: 80,        // people walking past at reputation 50
+  footfall: { base: 0.5, perRepPoint: 0.01 },   // multiplier = 0.5 + rep/100  (0.5x .. 1.5x)
+  serviceMinutes: 5,        // one stove: one cup every N minutes
+  patience: { min: 8, max: 18 },                // minutes a customer will wait
+
+  // ---- weather & seasons (v0.2) ----
+  seasonLengthDays: 10,     // each season lasts this many days, then the next begins (cycles forever)
+  forecastAccuracy: 0.75,   // chance the morning forecast is right; otherwise tomorrow's weather surprises you
+  weathers: {               // mult = multiplies how many people walk past your cart
+    sunny:  { name: "Dhoop",          emoji: "☀️", mult: 1.0,  tip: "Saaf mausam — aam din." },
+    hot:    { name: "Jhulsati garmi", emoji: "🥵", mult: 0.7,  tip: "Itni garmi mein kaun peeta hai garam chai?" },
+    cloudy: { name: "Badal",          emoji: "⛅", mult: 1.05, tip: "Badal chhaye hain — thoda extra chai ka mood." },
+    rain:   { name: "Baarish",        emoji: "🌧️", mult: 1.25, tip: "Baarish + chai = pyaar! Zyada doodh rakhna." },
+    cold:   { name: "Thand",          emoji: "🥶", mult: 1.3,  tip: "Kadakadati thand — adrak wali chai ka mausam!" },
+  },
+  seasons: [                // weights = how likely each kind of weather is during that season
+    { name: "Sardi (Winter)",    emoji: "🧣", weights: { cold: 4, sunny: 3, cloudy: 2, rain: 0.5 } },
+    { name: "Garmi (Summer)",    emoji: "🌞", weights: { hot: 4, sunny: 3, cloudy: 1, rain: 0.3 } },
+    { name: "Barsaat (Monsoon)", emoji: "☔", weights: { rain: 5, cloudy: 3, sunny: 1, hot: 1 } },
+  ],
+  saveKey: "chaiwala-tycoon-save",
+  saveVersion: 2,
+
+  // ---- ingredients (water is free!) ----
+  // shelfLifeDays: how many days a batch lasts. 1 = only usable the day you buy it. null = never spoils.
+  ingredients: {
+    tea:   { name: "Chai patti", emoji: "🍃", unit: "g",  packSize: 100, packPrice: 40, shelfLifeDays: 30 },
+    milk:  { name: "Doodh",      emoji: "🥛", unit: "ml", packSize: 500, packPrice: 30, shelfLifeDays: 1 },
+    sugar: { name: "Cheeni",     emoji: "🍬", unit: "g",  packSize: 250, packPrice: 11, shelfLifeDays: null },
+  },
+  cupMl: 100,               // one cup = 100 ml
+
+  // ---- recipe knobs the player controls ----
+  recipe: {
+    strength:  { min: 1,  max: 5,  step: 1,  default: 3,  gramsPerLevel: 1 }, // tea g per cup = level * 1
+    sweetness: { min: 0,  max: 4,  step: 1,  default: 2,  gramsPerSpoon: 5 }, // sugar g per cup = spoons * 5
+    milk:      { min: 20, max: 90, step: 10, default: 60 },                   // % of the cup that is milk
+  },
+  price: { min: 5, max: 25, step: 1, default: 10 },
+
+  // ---- who walks past (one mixed street-corner crowd for the MVP) ----
+  customers: {
+    idealStrength:    { mean: 3,  sd: 0.8, min: 1,  max: 5  },
+    idealSweet:       { mean: 2,  sd: 0.9, min: 0,  max: 4  },
+    idealMilk:        { mean: 60, sd: 10,  min: 20, max: 90 },
+    willingnessToPay: { mean: 10, sd: 3,   min: 4,  max: 25 },  // their "fair price" in ₹
+  },
+
+  // ---- satisfaction & reputation ----
+  satisfaction: {
+    tasteWeights: { strength: 0.4, sweet: 0.3, milk: 0.3 },     // how much each knob matters for taste
+    valueFloor: 0.5,        // customer pays up to  fairPrice * (valueFloor + valueSwing * taste)
+    valueSwing: 0.8,        // (bigger swing = good chai earns a real premium, bad chai loses buyers)
+    weights: { taste: 0.5, price: 0.3, wait: 0.2 },             // satisfaction = mix of the three
+  },
+  reputation: {
+    baselineSat: 0.65,      // satisfaction above this grows reputation, below shrinks it
+    perSatPoint: 20,        // rep change = (avgSat - baseline) * this
+    fullEffectCups: 20,     // days with fewer cups count for less
+    soldOutPenalty: 0.15,   // rep lost per customer turned away because you ran out
+    soldOutPenaltyCap: 5,
+    noSalesPenalty: 2,
+  },
+  feedbackThreshold: { strength: 0.5, sweet: 0.6, milk: 8 },    // avg miss before customers "say something"
+
+  // ---- playback ----
+  tickMs: 40,
+  playbackSpeeds: [2, 5, 12],   // sim-minutes per tick (▶ ▶▶ ▶▶▶)
+
+  // ---- flavour text ----
+  headlines: [
+    "Chai peene walon ki sankhya mein izaafa!",
+    "Cutting ho ya full, chai sabki favourite!",
+    "Ek kapp chai, sau gham door.",
+    "Nukkad ki dukaan, dil ki shaan.",
+    "Subah ki chai, din ki shuruaat.",
+    "Aaj ka rashifal: chai pe charcha pakki.",
+  ],
+  strengthLabels:  ["Bahut halki", "Halki", "Theek-thaak", "Kadak", "Ekdum kadak"],
+  sweetnessLabels: ["Feeki", "Halki meethi", "Theek meethi", "Meethi", "Bahut meethi"],
+  text: {
+    happy:  ["Wah, kadak chai, bhaiya!", "Ek aur dena!", "Bilkul ghar jaisi!", "Dil khush kar diya!", "Yeh hui na baat!"],
+    ok:     ["Theek hai, chalega.", "Achhi hai, bas.", "Haan, peene layak hai.", "Chalo, kaam ban gaya."],
+    slow:   ["Itni der?! Jaldi karo bhaiya!", "Chai banane mein zamana lag gaya!", "Intezaar kar kar ke thak gaya..."],
+    pricey: ["Chai achhi hai, par daam zyada hain.", "Itne mein toh dukaan khareed lein!", "Thoda sasta kar do na."],
+    strengthHigh: ["Itni kadak? Chai hai ya kadha!", "Patti thodi kam daalo."],
+    strengthLow:  ["Patti kam hai, feeki hai.", "Yeh toh gunguna paani hai!"],
+    sweetHigh:    ["Bahut meethi hai, sugar ho jayega!", "Cheeni thodi kam karo."],
+    sweetLow:     ["Cheeni kam hai bhaiya!", "Thodi meethi aur daalo."],
+    milkHigh:     ["Doodh hi doodh hai, chai kahan?", "Thoda doodh kam karo."],
+    milkLow:      ["Doodh kam hai, kali chai ho gayi.", "Thodi malai chahiye thi."],
+    expensive:    ["Itna mehenga?! Chal, aage dekhte hain.", "Arre baap re, daam dekho!", "Pichhle wale ne sasti di thi!"],
+    reneged:      ["Bahut der ho gayi, chalta hoon!", "Meri bus aa gayi, bye!", "Line toh khatam hi nahi hoti..."],
+    queueFull:    ["Itni lambi line? Kal aaunga.", "Mere paas itna time nahi!"],
+    soldOutLine:  ["Doodh/patti khatam? Kal bhar ke rakhna!", "Arre, chai khatam?! Hayyy!"],
+  },
+};
+
+/* =====================================================================
+   2. STATE
+   ===================================================================== */
+function newGame(cash, restarts = 0) {
+  const R = CONFIG.recipe;
+  const st = {
+    day: 1,
+    cash,
+    rep: CONFIG.startReputation,
+    lots: { tea: [], milk: [], sugar: [] },        // stock as batches {qty, age in days}, so old batches can spoil
+    stock: { tea: 0, milk: 0, sugar: 0 },          // totals of the batches above (g / ml / g) — see refreshStock()
+    recipe: { strength: R.strength.default, sweetness: R.sweetness.default, milk: R.milk.default },
+    price: CONFIG.price.default,
+    totalCups: 0,
+    restarts,
+    lastReport: null,
+    daySeed: 0, weather: "sunny", forecast: "sunny",   // filled in by rollDay()
+  };
+  rollDay(st);
+  return st;
+}
+let state;                                       // set at the very bottom: load the save, or start a new game
+
+/* =====================================================================
+   3. GAME LOGIC  (pure functions — no DOM in here)
+   ===================================================================== */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const pick = (arr, rng) => arr[Math.floor(rng() * arr.length)];
+function gauss(rng) {                                   // standard normal (Box-Muller)
+  let u = 0, v = 0;
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+const normal = (spec, rng) => clamp(spec.mean + spec.sd * gauss(rng), spec.min, spec.max);
+function poisson(lambda, rng) {                         // random arrivals per minute
+  const L = Math.exp(-lambda);
+  let k = 0, p = 1;
+  do { k++; p *= rng(); } while (p > L);
+  return k - 1;
+}
+
+/** Ingredients one cup uses, in each ingredient's own unit. */
+function cupUsage(recipe) {
+  const R = CONFIG.recipe;
+  return {
+    tea:   recipe.strength  * R.strength.gramsPerLevel,
+    milk:  recipe.milk / 100 * CONFIG.cupMl,
+    sugar: recipe.sweetness * R.sweetness.gramsPerSpoon,
+  };
+}
+const unitCost = k => CONFIG.ingredients[k].packPrice / CONFIG.ingredients[k].packSize;
+/** ₹ cost of ingredients in one cup. */
+function cupCost(recipe) {
+  const u = cupUsage(recipe);
+  return Object.keys(u).reduce((sum, k) => sum + u[k] * unitCost(k), 0);
+}
+/** How many cups the current stock can make. */
+function stockCups(stock, recipe) {
+  const u = cupUsage(recipe);
+  let min = Infinity;
+  for (const k of Object.keys(u)) if (u[k] > 0) min = Math.min(min, stock[k] / u[k]);
+  return Math.floor(min + 1e-9);
+}
+const footfallMultiplier = rep => CONFIG.footfall.base + rep * CONFIG.footfall.perRepPoint;
+
+function buy(st, item, packs) {
+  const ing = CONFIG.ingredients[item], cost = ing.packPrice * packs;
+  if (st.cash < cost) return false;
+  st.cash -= cost;
+  addStock(st, item, ing.packSize * packs);
+  refreshStock(st);
+  return true;
+}
+
+/** Bankrupt = can't make even the cheapest possible cup and can't afford to restock for one. */
+function isBankrupt(st) {
+  const R = CONFIG.recipe;
+  const cheapest = { strength: R.strength.min, sweetness: R.sweetness.min, milk: R.milk.min };
+  const u = cupUsage(cheapest);
+  let needed = 0;
+  for (const k of Object.keys(u)) if (st.stock[k] + 1e-9 < u[k]) needed += CONFIG.ingredients[k].packPrice;
+  return st.cash < needed;
+}
+
+/* ---------- v0.2: seeded randomness, weather, spoilage, save data ---------- */
+
+/** Small seedable random generator (so a day's outcome is fixed once the day has started: no save-scumming). */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function pickWeighted(weights, rng) {
+  const entries = Object.entries(weights).filter(([, w]) => w > 0);
+  let r = rng() * entries.reduce((s, [, w]) => s + w, 0);
+  for (const [k, w] of entries) if ((r -= w) < 0) return k;
+  return entries[entries.length - 1][0];
+}
+/** Which season a given day falls in, and which day of that season it is. */
+function seasonOf(day) {
+  const len = CONFIG.seasonLengthDays, n = CONFIG.seasons.length;
+  return { ...CONFIG.seasons[Math.floor((day - 1) / len) % n], dayIn: ((day - 1) % len) + 1, len };
+}
+/** Decide the day's real weather and the (not always right) forecast. Also stores the day's random seed. */
+function rollDay(st, rng0 = Math.random) {
+  st.daySeed = Math.floor(rng0() * 2147483647);
+  const rng = mulberry32(st.daySeed ^ 0x5bd1e995);
+  const season = seasonOf(st.day);
+  st.weather = pickWeighted(season.weights, rng);
+  if (rng() < CONFIG.forecastAccuracy) st.forecast = st.weather;
+  else {
+    const others = { ...season.weights }; delete others[st.weather];
+    st.forecast = pickWeighted(others, rng);
+  }
+}
+
+/* Stock is kept as batches ("lots") with an age in days, so old batches can spoil.
+   st.stock is just the total of the batches, kept up to date by refreshStock(). */
+function refreshStock(st) {
+  st.stock = { tea: 0, milk: 0, sugar: 0 };
+  for (const k of Object.keys(st.stock)) st.stock[k] = st.lots[k].reduce((s, l) => s + l.qty, 0);
+}
+function addStock(st, k, qty) {
+  const fresh = st.lots[k].find(l => l.age === 0);
+  if (fresh) fresh.qty += qty; else st.lots[k].push({ qty, age: 0 });
+}
+/** Use up ingredients, oldest batch first. */
+function consumeStock(st, used) {
+  for (const k of Object.keys(used)) {
+    let need = used[k];
+    st.lots[k].sort((a, b) => b.age - a.age);
+    for (const l of st.lots[k]) { const take = Math.min(l.qty, need); l.qty -= take; need -= take; }
+    st.lots[k] = st.lots[k].filter(l => l.qty > 1e-9);
+  }
+}
+/** Overnight: every batch gets a day older; batches past their shelf life are thrown away. Returns what was lost. */
+function ageStock(st) {
+  const spoiled = { tea: 0, milk: 0, sugar: 0 };
+  for (const k of Object.keys(spoiled)) {
+    const life = CONFIG.ingredients[k].shelfLifeDays;
+    st.lots[k].forEach(l => l.age++);
+    if (life != null) st.lots[k] = st.lots[k].filter(l => { if (l.age >= life) { spoiled[k] += l.qty; return false; } return true; });
+  }
+  return spoiled;
+}
+/** How much of an ingredient will spoil at the end of today if it isn't used. */
+function expiringTonight(st, k) {
+  const life = CONFIG.ingredients[k].shelfLifeDays;
+  return life == null ? 0 : st.lots[k].filter(l => l.age + 1 >= life).reduce((s, l) => s + l.qty, 0);
+}
+
+/** Save data = the game state as text. (The big per-minute replay data of the last day is left out.) */
+function serializeState(st) {
+  const copy = { ...st, stock: undefined, lastReport: st.lastReport ? { ...st.lastReport, timeline: undefined, events: undefined } : null };
+  return JSON.stringify({ v: CONFIG.saveVersion, state: copy });
+}
+/** Returns a valid state, or null if the text is missing/corrupt/from another version. */
+function deserializeState(text) {
+  try {
+    const o = JSON.parse(text);
+    if (!o || o.v !== CONFIG.saveVersion || !o.state) return null;
+    const st = Object.assign(newGame(CONFIG.startCash), o.state);
+    if (![st.cash, st.day, st.rep, st.price].every(Number.isFinite) || st.day < 1) return null;
+    for (const k of Object.keys(CONFIG.ingredients))
+      if (!Array.isArray(st.lots[k]) || st.lots[k].some(l => !(l.qty >= 0) || !Number.isFinite(l.age))) return null;
+    const R = CONFIG.recipe;
+    for (const k of Object.keys(R)) st.recipe[k] = clamp(Number(st.recipe[k]) || R[k].default, R[k].min, R[k].max);
+    st.price = clamp(st.price, CONFIG.price.min, CONFIG.price.max);
+    if (!CONFIG.weathers[st.weather] || !CONFIG.weathers[st.forecast]) rollDay(st);
+    refreshStock(st);
+    return st;
+  } catch (e) { return null; }
+}
+
+/** A random passer-by with their own taste, wallet and patience. */
+function makeCustomer(rng) {
+  const K = CONFIG.customers;
+  return {
+    idealStrength: normal(K.idealStrength, rng),
+    idealSweet: normal(K.idealSweet, rng),
+    idealMilk: normal(K.idealMilk, rng),
+    wtp: normal(K.willingnessToPay, rng),
+    patience: CONFIG.patience.min + rng() * (CONFIG.patience.max - CONFIG.patience.min),
+  };
+}
+
+/**
+ * Taste score 0..1 = 1 - (weighted distance between your recipe and their ideal).
+ * Each knob's distance is scaled to 0..1 by its range. Also returns signed misses
+ * (positive = your recipe has MORE than they wanted) for feedback.
+ */
+function tasteBreakdown(recipe, c) {
+  const R = CONFIG.recipe, w = CONFIG.satisfaction.tasteWeights;
+  const rawS = recipe.strength - c.idealStrength;
+  const rawW = recipe.sweetness - c.idealSweet;
+  const rawM = recipe.milk - c.idealMilk;
+  const dS = rawS / (R.strength.max - R.strength.min);
+  const dW = rawW / (R.sweetness.max - R.sweetness.min);
+  const dM = rawM / (R.milk.max - R.milk.min);
+  const taste = clamp(1 - (w.strength * Math.abs(dS) + w.sweet * Math.abs(dW) + w.milk * Math.abs(dM)), 0, 1);
+  return { taste, dS, dW, dM, rawS, rawW, rawM };
+}
+/** The most this customer will pay: fairPrice * (0.7 + 0.5 * taste). */
+function perceivedValue(c, taste) {
+  const S = CONFIG.satisfaction;
+  return c.wtp * (S.valueFloor + S.valueSwing * taste);
+}
+
+function saleComment(parts, sat, rng) {
+  const T = CONFIG.text;
+  if (sat >= 0.8) return pick(T.happy, rng);
+  if (sat >= 0.6) return pick(T.ok, rng);
+  const worst = [["taste", parts.taste], ["price", parts.priceScore], ["wait", parts.waitScore]]
+    .sort((a, b) => a[1] - b[1])[0][0];
+  if (worst === "wait") return pick(T.slow, rng);
+  if (worst === "price") return pick(T.pricey, rng);
+  const devs = [["s", parts.dS], ["w", parts.dW], ["m", parts.dM]].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0];
+  const high = devs[1] > 0;
+  if (devs[0] === "s") return pick(high ? T.strengthHigh : T.strengthLow, rng);
+  if (devs[0] === "w") return pick(high ? T.sweetHigh : T.sweetLow, rng);
+  return pick(high ? T.milkHigh : T.milkLow, rng);
+}
+const moodFace = sat => sat >= 0.8 ? "😍" : sat >= 0.6 ? "🙂" : sat >= 0.4 ? "😐" : "😠";
+
+/**
+ * Simulate one whole day. Pure: takes the player's choices, returns a result object
+ * (events + per-minute timeline for the animation + totals for the report).
+ *
+ * Plain-language rules:
+ *  - People walking past today ≈ basePassersby * (0.5 + reputation/100) * weather multiplier, spread by hour weights.
+ *  - Each passer-by checks taste → decides the most they'd pay → buys only if price <= that.
+ *  - One stove serves one cup every `serviceMinutes`. They skip a too-long line and leave if
+ *    they wait past their patience.
+ *  - Ingredients are used when a cup starts brewing; if you can't make a cup, you're sold out.
+ */
+function simulateDay(input, rng = Math.random) {
+  const C = CONFIG;
+  const minutes = C.dayHours * 60;
+  const { price, recipe } = input;
+  const perCup = cupUsage(recipe);
+  const stock = { ...input.stock };
+  const wSum = C.hourWeights.reduce((a, b) => a + b, 0);
+  const expectedPassersby = C.basePassersby * footfallMultiplier(input.rep) * C.weathers[input.weather].mult;
+
+  const events = [];
+  const tl = {
+    queue: new Array(minutes + 1).fill(0), busy: new Array(minutes + 1).fill(false),
+    cups: new Array(minutes + 1).fill(0), revenue: new Array(minutes + 1).fill(0),
+  };
+  let queue = [], serving = null, soldOut = false;
+  let cups = 0, revenue = 0, tooExpensive = 0, lostSoldOut = 0, lostQueue = 0, satSum = 0;
+  const miss = { s: 0, w: 0, m: 0 };                       // sum of signed recipe misses (served customers)
+
+  const canMakeCup = () => Object.keys(perCup).every(k => stock[k] + 1e-9 >= perCup[k]);
+  const snap = t => {
+    tl.queue[t] = queue.length; tl.busy[t] = !!serving; tl.cups[t] = cups; tl.revenue[t] = revenue;
+  };
+  function completeSale(t) {
+    const c = serving.c, waited = serving.start - c.arrive;
+    const priceScore = clamp(0.5 + (c.value / price - 1), 0, 1);   // 0.5 if barely worth it, 1 if a bargain
+    const waitScore = clamp(1 - waited / c.patience, 0, 1);
+    const w = C.satisfaction.weights;
+    const sat = w.taste * c.taste + w.price * priceScore + w.wait * waitScore;
+    const parts = { taste: c.taste, priceScore, waitScore, dS: c.dS, dW: c.dW, dM: c.dM };
+    cups++; revenue += price; satSum += sat;
+    miss.s += c.rawS; miss.w += c.rawW; miss.m += c.rawM;
+    events.push({ t, type: "sale", text: `${moodFace(sat)} "${saleComment(parts, sat, rng)}" +₹${price}` });
+    serving = null;
+  }
+
+  events.push({ t: 0, type: "info", text: "🫖 Chai ubal rahi hai — dukaan khul gayi!" });
+
+  for (let t = 0; t < minutes; t++) {
+    // 1. finish the cup on the stove
+    if (serving && serving.finish <= t) completeSale(t);
+
+    // 2. new passers-by
+    const lambda = expectedPassersby * C.hourWeights[Math.floor(t / 60)] / wSum / 60;
+    const arrivals = poisson(lambda, rng);
+    for (let i = 0; i < arrivals; i++) {
+      const c = makeCustomer(rng);
+      c.arrive = t;
+      Object.assign(c, tasteBreakdown(recipe, c));
+      c.value = perceivedValue(c, c.taste);
+      if (price > c.value) {                                       // too pricey for them
+        tooExpensive++;
+        if (rng() < 0.5) events.push({ t, type: "pass", text: `🙄 "${pick(C.text.expensive, rng)}"` });
+      } else if (soldOut) {                                        // wanted chai, none left
+        lostSoldOut++;
+      } else if ((queue.length + (serving ? 1 : 0)) * C.serviceMinutes > c.patience) {   // line too long
+        lostQueue++;
+        events.push({ t, type: "lost", text: `🚶 "${pick(C.text.queueFull, rng)}"` });
+      } else {
+        queue.push(c);
+      }
+    }
+
+    // 3. start the next cup if the stove is free
+    while (!serving && queue.length) {
+      const head = queue[0];
+      if (t - head.arrive > head.patience) {                       // waited too long
+        queue.shift(); lostQueue++;
+        events.push({ t, type: "lost", text: `⏳ "${pick(C.text.reneged, rng)}"` });
+        continue;
+      }
+      if (!canMakeCup()) {                                         // out of stock!
+        soldOut = true;
+        lostSoldOut += queue.length;
+        queue = [];
+        events.push({ t, type: "lost", text: `😢 Saaman khatam! ${pick(C.text.soldOutLine, rng)}` });
+        break;
+      }
+      for (const k of Object.keys(perCup)) stock[k] -= perCup[k];
+      queue.shift();
+      serving = { c: head, start: t, finish: t + C.serviceMinutes };
+    }
+    snap(t);
+  }
+
+  // closing time: finish the cup on the stove, send the rest home
+  if (serving) completeSale(minutes);
+  if (queue.length) {
+    lostQueue += queue.length;
+    events.push({ t: minutes, type: "lost", text: `🔒 Dukaan band — ${queue.length} log line mein reh gaye.` });
+    queue = [];
+  }
+  events.push({ t: minutes, type: "info", text: "🌇 Dukaan band! Din khatam." });
+  snap(minutes);
+
+  // ---- totals ----
+  const used = {};
+  for (const k of Object.keys(perCup)) used[k] = perCup[k] * cups;
+  const cogs = Object.keys(used).reduce((s, k) => s + used[k] * unitCost(k), 0);
+  const rent = C.rentPerDay;
+  const profit = revenue - cogs - rent;
+  const avgSat = cups ? satSum / cups : null;
+
+  const Rp = C.reputation;
+  let repDelta;
+  if (!cups) repDelta = -Rp.noSalesPenalty;
+  else {
+    repDelta = (avgSat - Rp.baselineSat) * Rp.perSatPoint * Math.min(1, cups / Rp.fullEffectCups);
+    repDelta -= Math.min(Rp.soldOutPenaltyCap, Rp.soldOutPenalty * lostSoldOut);
+  }
+  const repAfter = clamp(input.rep + repDelta, 0, 100);
+
+  return {
+    minutes, events, timeline: tl,
+    cups, revenue, cogs, rent, profit, avgSat,
+    tooExpensive, lostSoldOut, lostQueue,
+    repBefore: input.rep, repDelta: repAfter - input.rep, repAfter,
+    stockAfter: stock, used, weather: input.weather,
+    feedback: buildFeedback({ cups, miss, tooExpensive, lostSoldOut, lostQueue }),
+  };
+}
+
+/** Turns the day's numbers into Hinglish customer feedback lines. */
+function buildFeedback(d) {
+  const lines = [], F = CONFIG.feedbackThreshold;
+  if (d.cups >= 5) {
+    const ms = d.miss.s / d.cups, mw = d.miss.w / d.cups, mm = d.miss.m / d.cups;
+    let flagged = false;
+    if (ms > F.strength)  { lines.push("💪 Kai logon ko chai thodi zyada kadak lagi."); flagged = true; }
+    if (ms < -F.strength) { lines.push("🍃 Kai logon ko chai feeki lagi — patti badhao!"); flagged = true; }
+    if (mw > F.sweet)     { lines.push("🍬 Thodi zyada meethi lagi logon ko."); flagged = true; }
+    if (mw < -F.sweet)    { lines.push("🍬 Cheeni kam padi — meethi chai chahiye thi."); flagged = true; }
+    if (mm > F.milk)      { lines.push("🥛 Doodh thoda zyada ho gaya."); flagged = true; }
+    if (mm < -F.milk)     { lines.push("🥛 Doodh kam laga — thodi malai chahiye."); flagged = true; }
+    if (!flagged) lines.push("👌 Chai ka swaad bilkul sahi laga — recipe set hai!");
+  } else if (d.cups > 0) {
+    lines.push("🤏 Bahut kam cups bike — feedback ke liye sample chhota hai.");
+  }
+  if (d.tooExpensive > 0) lines.push(`💸 ${d.tooExpensive} log daam sunke aage badh gaye.`);
+  if (d.lostSoldOut > 0)  lines.push(`😢 ${d.lostSoldOut} customers wapas gaye — stock khatam ho gaya tha.`);
+  if (d.lostQueue > 0)    lines.push(`⏳ ${d.lostQueue} log line ya intezaar se thak kar chale gaye (ek hi chulha hai!).`);
+  return lines;
+}
+
+function verdictFor(profit) {
+  if (profit >= 150) return "Dhamaka din! 🎉";
+  if (profit >= 50)  return "Achha din, bhaiya! 👍";
+  if (profit >= 0)   return "Chalo, kuch toh bacha. 🙂";
+  return "Aaj ghata hua... kal dekhenge. 😅";
+}
+
+/**
+ * Apply a finished day to the saved state, then move on to the next morning:
+ * use up ingredients (oldest first) -> overnight spoilage -> day counter + new weather.
+ * Spoiled stock counts against the day's profit (you paid for it, then threw it away).
+ */
+function applyDay(st, r) {
+  r.day = st.day;
+  r.forecast = st.forecast;
+  consumeStock(st, r.used);
+  r.spoiled = ageStock(st);
+  r.spoiledCost = Object.keys(r.spoiled).reduce((s, k) => s + r.spoiled[k] * unitCost(k), 0);
+  r.profit -= r.spoiledCost;
+  if (r.spoiledCost >= 0.5) r.feedback.push(`🗑️ ${rs0(r.spoiledCost)} ka saaman kharab ho gaya (doodh sirf ek din chalta hai!).`);
+  if (r.forecast !== r.weather) r.feedback.push(`🌦️ Mausam vibhag ne phir galat bola! (forecast ${CONFIG.weathers[r.forecast].emoji}, asli ${CONFIG.weathers[r.weather].emoji})`);
+  st.cash += r.revenue - r.rent;       // ingredient costs were already paid when you bought them
+  st.rep = r.repAfter;
+  st.totalCups += r.cups;
+  st.lastReport = r;
+  st.day++;
+  rollDay(st);
+  refreshStock(st);
+}
+const rs0 = n => "₹" + Math.round(n);
+
+/* ==== LOGIC END (the Node test harness cuts the file here) ==== */
+
+/* =====================================================================
+   4. UI  (rendering + input only)
+   ===================================================================== */
+const app = document.getElementById("app");
+const ui = { screen: "prepare", play: null, notebookOpen: false, confirmReset: false };
+
+/** Save/load in the browser (localStorage). Wrapped in try/catch: private windows can block it; the game still works. */
+const store = {
+  save() { try { localStorage.setItem(CONFIG.saveKey, serializeState(state)); } catch (e) {} },
+  load() { try { return deserializeState(localStorage.getItem(CONFIG.saveKey) || ""); } catch (e) { return null; } },
+  clear() { try { localStorage.removeItem(CONFIG.saveKey); } catch (e) {} },
+};
+
+const rs  = n => (n < 0 ? "-" : "") + "₹" + Math.abs(Math.round(n)).toLocaleString("en-IN");
+const rs1 = n => "₹" + n.toFixed(1);
+function fmtTime(t) {
+  const h24 = CONFIG.dayStartHour + Math.floor(t / 60), m = t % 60;
+  const h12 = ((h24 + 11) % 12) + 1;
+  return `${h12}:${String(m).padStart(2, "0")} ${h24 < 12 ? "AM" : "PM"}`;
+}
+const milkLabel = p => p <= 30 ? "Halka doodh" : p <= 50 ? "Thoda doodh" : p <= 70 ? "Malaidaar" : "Ekdum malai";
+
+function topbar(day = state.day) {
+  return `<div class="topbar">
+    <div class="pill"><small>Din</small><b>${day}</b></div>
+    <div class="pill"><small>Gallu (cash)</small><b class="${state.cash < 0 ? "neg" : ""}">${rs(state.cash)}</b></div>
+    <div class="pill"><small>Naam (reputation)</small><b>${Math.round(state.rep)}/100</b></div>
+  </div>`;
+}
+
+function stepper(label, big, small, act, key) {
+  return `<div class="stepper">
+    <button class="btn ghost" data-act="${act}" data-key="${key}" data-dir="-1" aria-label="less ${label}">−</button>
+    <div class="val"><small>${label}</small><b>${big}</b><small>${small}</small></div>
+    <button class="btn ghost" data-act="${act}" data-key="${key}" data-dir="1" aria-label="more ${label}">+</button>
+  </div>`;
+}
+
+/* ---------- PREPARE SCREEN ---------- */
+function renderPrepare() {
+  const s = state, C = CONFIG;
+  const cost = cupCost(s.recipe), margin = s.price - cost, cover = stockCups(s.stock, s.recipe);
+  const headline = C.headlines[(s.day - 1) % C.headlines.length];
+
+  const stockRows = Object.entries(C.ingredients).map(([k, ing]) => {
+    const u = cupUsage(s.recipe)[k];
+    const cups = u > 0 ? Math.floor(s.stock[k] / u + 1e-9) : "∞";
+    const life = ing.shelfLifeDays, exp = expiringTonight(s, k);
+    const lifeTxt = life == null ? "kabhi kharab nahi" : life === 1 ? "sirf 1 din chalta hai" : `${life} din chalta hai`;
+    const expTxt = exp > 0 ? `<br><span class="bad">⚠️ ${Math.round(exp)} ${ing.unit} aaj raat kharab ho jayega!</span>` : "";
+    return `<div class="row">
+      <div class="info"><b>${ing.emoji} ${ing.name}</b><br>
+        <small>Hai: ${Math.round(s.stock[k])} ${ing.unit} (~${cups} cups) · pack ${ing.packSize} ${ing.unit}<br>${lifeTxt}</small>${expTxt}</div>
+      <div class="btns">
+        <button class="btn" data-act="buy" data-item="${k}" data-packs="1" ${s.cash < ing.packPrice ? "disabled" : ""}>+1 · ${rs(ing.packPrice)}</button>
+        <button class="btn" data-act="buy" data-item="${k}" data-packs="5" ${s.cash < ing.packPrice * 5 ? "disabled" : ""}>+5 · ${rs(ing.packPrice * 5)}</button>
+      </div></div>`;
+  }).join("");
+
+  const S = C.satisfaction, K = C.customers, Rp = C.reputation;
+  const season = seasonOf(s.day), fw = C.weathers[s.forecast];
+  const expectedWalkers = Math.round(C.basePassersby * footfallMultiplier(s.rep) * fw.mult);
+  const yest = s.lastReport ? `Kal ${s.lastReport.cups} cups bike.` : "";
+  app.innerHTML = `
+    ${topbar()}
+    <div class="gazette"><div class="masthead">📰 THE CHAI GAZETTE · Din ${s.day}</div><div class="headline">"${headline}"</div></div>
+
+    <div class="card forecast">
+      <div class="wx-big">${fw.emoji}</div>
+      <div><b>Aaj ka mausam (forecast): ${fw.name}</b><br>
+        <small>${season.emoji} ${season.name} · din ${season.dayIn}/${season.len}</small><br>
+        <small>${fw.tip}</small><br>
+        <small>Andaaza: ~${expectedWalkers} log guzrenge. ${yest} <i>(Forecast ${Math.round(C.forecastAccuracy * 100)}% hi sahi hota hai!)</i></small></div>
+    </div>
+
+    <div class="card"><h3>🛒 Saaman kharido (Stock)</h3>${stockRows}</div>
+
+    <div class="card"><h3>🫖 Recipe</h3>
+      ${stepper("Chai ki taakat", `${s.recipe.strength}/5 · ${C.strengthLabels[s.recipe.strength - 1]}`, `${cupUsage(s.recipe).tea} g patti per cup`, "recipe", "strength")}
+      ${stepper("Meetha", `${s.recipe.sweetness} chamach · ${C.sweetnessLabels[s.recipe.sweetness]}`, `${cupUsage(s.recipe).sugar} g cheeni per cup`, "recipe", "sweetness")}
+      ${stepper("Doodh", `${s.recipe.milk}% · ${milkLabel(s.recipe.milk)}`, `${cupUsage(s.recipe).milk} ml doodh per cup`, "recipe", "milk")}
+    </div>
+
+    <div class="card"><h3>🏷️ Daam (Price per cup)</h3>
+      <div class="stepper">
+        <button class="btn ghost" data-act="price" data-dir="-1" aria-label="lower price">−</button>
+        <div class="val"><b style="font-size:1.6rem">${rs(s.price)}</b></div>
+        <button class="btn ghost" data-act="price" data-dir="1" aria-label="raise price">+</button>
+      </div>
+    </div>
+
+    <div class="card"><h3>📒 Hisaab (today's numbers)</h3>
+      <div class="summary">
+        Ingredient cost per cup: <b>${rs1(cost)}</b><br>
+        Margin per cup: <span class="${margin >= 0 ? "good" : "bad"}">${margin >= 0 ? "+" : ""}${rs1(margin)}</span><br>
+        Stock lasts: <b>${cover}</b> cups at this recipe<br>
+        Cart rent today: <b>${rs(C.rentPerDay)}</b>
+      </div>
+    </div>
+
+    <button class="btn big" data-act="open" ${cover < 1 ? "disabled" : ""}>☕ Dukaan kholo!</button>
+    ${cover < 1 ? `<div class="hint">Bina saaman ke chai? Pehle patti, doodh aur cheeni kharido!</div>` : ""}
+
+    <div class="card"><details id="notebook" ${ui.notebookOpen ? "open" : ""}>
+      <summary>📖 Chaiwala's notebook — how the math works</summary>
+      <ul>
+        <li>People walking past ≈ <b>${C.basePassersby} × (0.5 + reputation/100) × weather</b> a day, busiest 7–9 AM and 4–6 PM.</li>
+        <li>Weather multipliers: ${Object.values(C.weathers).map(w => `${w.emoji} ×${w.mult}`).join(" · ")}. Seasons change every ${C.seasonLengthDays} days. The forecast is right ${Math.round(C.forecastAccuracy * 100)}% of the time.</li>
+        <li>Spoilage: ${Object.values(C.ingredients).map(i => `${i.name} ${i.shelfLifeDays == null ? "never" : i.shelfLifeDays + " day" + (i.shelfLifeDays > 1 ? "s" : "")}`).join(" · ")}. Oldest stock is used first. Spoiled stock is lost money.</li>
+        <li>Each person has their own ideal strength, sweetness, milk — and a "fair price" around <b>${rs(K.willingnessToPay.mean)}</b> (±${K.willingnessToPay.sd}).</li>
+        <li><b>Taste score</b> = 100% minus how far your recipe is from their ideal (strength ${S.tasteWeights.strength * 100}%, sweetness ${S.tasteWeights.sweet * 100}%, milk ${S.tasteWeights.milk * 100}% of the penalty).</li>
+        <li>They pay at most <b>fair price × (${S.valueFloor} + ${S.valueSwing} × taste)</b>. Price above that → they walk on.</li>
+        <li><b>Satisfaction</b> = ${S.weights.taste * 100}% taste + ${S.weights.price * 100}% price fairness + ${S.weights.wait * 100}% short waiting.</li>
+        <li>Reputation change = <b>(avg satisfaction − ${Rp.baselineSat}) × ${Rp.perSatPoint}</b>, minus ${Rp.soldOutPenalty} per customer turned away because you ran out (max ${Rp.soldOutPenaltyCap}).</li>
+        <li>One stove makes a cup every <b>${C.serviceMinutes} min</b>. People wait ${C.patience.min}–${C.patience.max} min, then leave.</li>
+        <li>Profit = revenue − ingredients used − rent − spoiled stock. Unspoiled stock carries over to tomorrow.</li>
+      </ul>
+    </details></div>
+
+    <div class="hint">✅ Progress auto-save hoti hai · v0.2<br>
+      <button class="btn ghost" data-act="reset" style="margin-top:8px">${ui.confirmReset ? "Pakka? Sab mit jayega — dobara dabao" : "🗑️ Naya khel shuru karo"}</button></div>`;
+}
+
+/* ---------- RUN SCREEN ---------- */
+function startDay() {
+  store.save();
+  const result = simulateDay({ price: state.price, recipe: { ...state.recipe }, stock: { ...state.stock }, rep: state.rep, weather: state.weather },
+                             mulberry32(state.daySeed));   // seeded: reloading the game can't re-roll the day
+  ui.play = { result, t: 0, speedIdx: 0, evIdx: 0, timer: null, done: false };
+  ui.screen = "run";
+  renderRun();
+  ui.play.timer = setInterval(tick, CONFIG.tickMs);
+}
+
+function renderRun() {
+  const W = CONFIG.weathers[ui.play.result.weather];
+  app.innerHTML = `
+    ${topbar()}
+    <div class="scene wx-${ui.play.result.weather}">
+      <div class="sign">🏮 GARAM CHAI 🏮</div>
+      <div class="sign" style="letter-spacing:0;font-weight:600">${W.emoji} ${W.name}</div>
+      <div class="stall"><span class="kettle" id="kettle">🫖</span><span class="steam">♨️</span><span>🔥</span></div>
+      <div class="queue" id="queue"></div>
+    </div>
+    <div class="clock" id="clock">${fmtTime(0)}</div>
+    <div class="bar"><i id="progress"></i></div>
+    <div class="stats">
+      <div><small>Cups bike</small><b id="cups">0</b></div>
+      <div><small>Kamayi</small><b id="rev">₹0</b></div>
+      <div><small>Line mein</small><b id="qlen">0</b></div>
+    </div>
+    <div class="ticker" id="ticker"></div>
+    <div class="controls">
+      ${CONFIG.playbackSpeeds.map((_, i) => `<button class="btn ghost ${i === 0 ? "active" : ""}" data-act="speed" data-idx="${i}">${"▶".repeat(i + 1)}</button>`).join("")}
+      <button class="btn" data-act="skip">⏭ Skip</button>
+    </div>`;
+  updateRun();
+}
+
+const PEOPLE = ["🧑", "👩", "👨", "🧓", "👧", "🧔", "👩‍🦱", "🧑‍🦰"];
+function updateRun() {
+  const p = ui.play, R = p.result, tl = R.timeline, t = p.t;
+  document.getElementById("clock").textContent = fmtTime(t);
+  document.getElementById("progress").style.width = (t / R.minutes * 100) + "%";
+  document.getElementById("cups").textContent = tl.cups[t];
+  document.getElementById("rev").textContent = rs(tl.revenue[t]);
+  document.getElementById("qlen").textContent = tl.queue[t];
+  document.getElementById("kettle").classList.toggle("busy", tl.busy[t]);
+
+  const q = tl.queue[t], shown = Math.min(q, 8);
+  let qs = "";
+  for (let i = 0; i < shown; i++) qs += PEOPLE[i % PEOPLE.length];
+  if (q > shown) qs += ` +${q - shown}`;
+  document.getElementById("queue").textContent = qs;
+
+  const ticker = document.getElementById("ticker");
+  while (p.evIdx < R.events.length && R.events[p.evIdx].t <= t) {
+    const e = R.events[p.evIdx++];
+    const div = document.createElement("div");
+    div.className = e.type;
+    div.textContent = `${fmtTime(e.t)}  ${e.text}`;
+    ticker.prepend(div);
+    while (ticker.children.length > 7) ticker.lastChild.remove();
+  }
+}
+
+function tick() {
+  const p = ui.play;
+  if (!p || p.done) return;
+  p.t = Math.min(p.result.minutes, p.t + CONFIG.playbackSpeeds[p.speedIdx]);
+  updateRun();
+  if (p.t >= p.result.minutes) finishPlayback();
+}
+function finishPlayback() {
+  const p = ui.play;
+  if (p.done) return;
+  p.done = true;
+  clearInterval(p.timer);
+  setTimeout(() => {
+    applyDay(state, p.result);     // also advances to the next morning (new day, new weather)
+    store.save();
+    ui.screen = "report";
+    renderReport();
+  }, 700);
+}
+
+/* ---------- REPORT SCREEN ---------- */
+function renderReport() {
+  const r = state.lastReport, C = CONFIG, W = C.weathers[r.weather];
+  const ratingText = r.avgSat === null ? "—" : `${moodFace(r.avgSat)} ${Math.round(r.avgSat * 100)}%`;
+  const stockLeft = Object.entries(C.ingredients)
+    .map(([k, ing]) => `${ing.emoji} ${Math.round(state.stock[k])} ${ing.unit}`).join(" · ");
+  const delta = r.repDelta;
+  app.innerHTML = `
+    ${topbar(r.day)}
+    <div class="card verdict"><small>Din ${r.day} ki report · ${W.emoji} ${W.name}</small><h2>${verdictFor(r.profit)}</h2></div>
+
+    <div class="card"><h3>📊 Hisaab-kitaab</h3>
+      <table class="table">
+        <tr><td>Cups sold</td><td>${r.cups}</td></tr>
+        <tr><td>Revenue</td><td>${rs(r.revenue)}</td></tr>
+        <tr><td>Ingredients used</td><td>− ${rs(r.cogs)}</td></tr>
+        <tr><td>Cart rent</td><td>− ${rs(r.rent)}</td></tr>
+        <tr><td>Spoiled stock</td><td>− ${rs(r.spoiledCost)}</td></tr>
+        <tr class="total"><td>Profit</td><td class="${r.profit >= 0 ? "good" : "bad"}">${r.profit >= 0 ? "+" : ""}${rs(r.profit)}</td></tr>
+      </table>
+      <div class="hint">Total cups so far: ${state.totalCups}</div>
+    </div>
+
+    <div class="card"><h3>⭐ Naam (Reputation)</h3>
+      <div>Customer satisfaction: <b>${ratingText}</b></div>
+      <div class="repbar"><i style="width:${state.rep}%"></i></div>
+      <div>${Math.round(r.repBefore)} → <b>${Math.round(r.repAfter)}</b>
+        <span class="${delta >= 0 ? "good" : "bad"}">(${delta >= 0 ? "+" : ""}${delta.toFixed(1)})</span></div>
+    </div>
+
+    <div class="card"><h3>🗣️ Customer feedback</h3>
+      <ul class="fb">${r.feedback.map(l => `<li>${l}</li>`).join("") || "<li>Aaj koi nahi aaya... 🦗</li>"}</ul>
+    </div>
+
+    <div class="card"><h3>📦 Kal ke liye stock</h3><div>${stockLeft}</div></div>
+
+    <button class="btn big" data-act="next">Agla din →</button>`;
+  window.scrollTo(0, 0);
+}
+
+/* ---------- BANKRUPT SCREEN ---------- */
+function renderBankrupt() {
+  app.innerHTML = `
+    ${topbar()}
+    <div class="card verdict">
+      <h2>Dukaan band hone ki naubat! 😢</h2>
+      <p>Na paisa bacha, na saaman. Par chaiwale haar nahi maante!</p>
+      <p>Sharma uncle ne offer kiya hai: <b>${rs(CONFIG.restartCash)}</b> udhaar, naye sire se shuru karo.</p>
+      <p><small>Din ${state.day} tak ${state.totalCups} cups becheen. Shabaash!</small></p>
+    </div>
+    <button class="btn big" data-act="restart">🫖 Udhaar lo, fir shuru karo</button>`;
+}
+
+/* ---------- INPUT ---------- */
+function adjustRecipe(key, dir) {
+  const spec = CONFIG.recipe[key];
+  state.recipe[key] = clamp(state.recipe[key] + dir * spec.step, spec.min, spec.max);
+}
+function adjustPrice(dir) {
+  const P = CONFIG.price;
+  state.price = clamp(state.price + dir * P.step, P.min, P.max);
+}
+function nextDay() {                    // (the day counter already moved on inside applyDay)
+  if (isBankrupt(state)) { ui.screen = "bankrupt"; renderBankrupt(); }
+  else { ui.screen = "prepare"; renderPrepare(); window.scrollTo(0, 0); }
+}
+function restartGame() {
+  state = newGame(CONFIG.restartCash, state.restarts + 1);
+  ui.screen = "prepare";
+  store.save();
+  renderPrepare();
+}
+function resetGame() {                   // "Naya khel": needs two taps so it can't happen by accident
+  if (!ui.confirmReset) { ui.confirmReset = true; renderPrepare(); return; }
+  ui.confirmReset = false;
+  state = newGame(CONFIG.startCash);
+  store.save();
+  renderPrepare();
+  window.scrollTo(0, 0);
+}
+
+app.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el || el.disabled) return;
+  const d = el.dataset;
+  switch (d.act) {
+    case "buy":     buy(state, d.item, +d.packs); store.save(); renderPrepare(); break;
+    case "recipe":  adjustRecipe(d.key, +d.dir);  store.save(); renderPrepare(); break;
+    case "price":   adjustPrice(+d.dir);          store.save(); renderPrepare(); break;
+    case "reset":   resetGame(); break;
+    case "open":    startDay(); break;
+    case "speed":
+      ui.play.speedIdx = +d.idx;
+      document.querySelectorAll(".controls [data-act=speed]").forEach((b, i) => b.classList.toggle("active", i === +d.idx));
+      break;
+    case "skip":    if (ui.play && !ui.play.done) { ui.play.t = ui.play.result.minutes; updateRun(); finishPlayback(); } break;
+    case "next":    nextDay(); break;
+    case "restart": restartGame(); break;
+  }
+});
+// remember whether the notebook is open across re-renders ('toggle' doesn't bubble, so capture it)
+app.addEventListener("toggle", e => { if (e.target.id === "notebook") ui.notebookOpen = e.target.open; }, true);
+
+// start: continue the saved game if there is one, otherwise a fresh game
+state = store.load() || newGame(CONFIG.startCash);
+if (isBankrupt(state)) { ui.screen = "bankrupt"; renderBankrupt(); } else renderPrepare();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');
+(async()=>{ const b=await chromium.launch(); const p=await (await b.newContext({viewport:{width:480,height:900}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+ await p.goto('file://'+require('path').join(__dirname,'..','..','www','index.html'));
+ console.log('first launch tutorial (EN):',await p.evaluate(()=>[ui.modal,document.getElementById('overlay').innerText.split('\n')[1]]));
+ await p.click('#overlay .btn[data-act=closeModal]'); await p.click('[data-act=buy][data-item=tea][data-packs="1"]');
+ await p.click('[data-act=settings]'); await p.click('[data-act=lang][data-val=hi]'); await p.waitForLoadState('load'); await p.waitForTimeout(300);
+ console.log('after switching to Hinglish:',await p.evaluate(()=>[LANG,document.querySelector('.gazette').innerText.replace(/\n/g,' | '),state.stock.tea]));
+ await p.click('[data-act=settings]'); await p.click('[data-act=lang][data-val=en]'); await p.waitForTimeout(300);
+ console.log('back to English:',await p.evaluate(()=>[LANG,document.querySelector('[data-act=tab][data-tab=today]').innerText.trim(),state.stock.tea]));
+ console.log('errors:',errs.length?errs:'none'); await b.close(); })();

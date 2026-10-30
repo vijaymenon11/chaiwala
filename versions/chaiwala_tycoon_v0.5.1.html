@@ -1,0 +1,2045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>Chaiwala Tycoon</title>
+<style>
+  :root{
+    --brown:#5b3416; --chai:#a8662c; --marigold:#f5b11a; --teal:#12878a;
+    --cream:#fff4de; --paper:#fffaf0; --ink:#2d1b0c; --red:#c4452d;
+    --green:#2f8f4e; --line:#ead9bb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-tap-highlight-color:transparent}
+  #app{max-width:560px;margin:0 auto;padding:10px 12px 96px}
+  h1,h2,h3{margin:0}
+  small{color:#7a5c3a}
+
+  /* top bar */
+  .topbar{display:flex;gap:8px;position:sticky;top:0;z-index:5;padding:8px 0;background:var(--cream)}
+  .pill{flex:1;background:var(--brown);color:#fff;border-radius:14px;padding:6px 10px;text-align:center}
+  .pill small{display:block;color:#f3d9a8;font-size:.7rem}
+  .pill b{font-size:1.15rem}
+  .pill b.neg{color:#ff9d8a}
+
+  /* bottom navigation */
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--brown);display:flex;justify-content:center;
+    padding-bottom:env(safe-area-inset-bottom)}
+  .nav .in{display:flex;width:100%;max-width:560px}
+  .nav button{flex:1;border:0;background:none;color:#f3d9a8;padding:8px 2px;min-height:56px;font-size:.72rem;cursor:pointer}
+  .nav button b{display:block;font-size:1.3rem;font-weight:400}
+  .nav button.on{color:#fff;background:#7a4a24}
+
+  /* cards */
+  .card{background:#fff;border:2px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
+  .card h3{font-size:1.05rem;margin-bottom:6px;color:var(--brown)}
+  .gazette{background:var(--paper);border:2px dashed var(--chai);border-radius:12px;text-align:center;padding:10px;margin-top:6px}
+  .masthead{font-family:Georgia,serif;font-weight:700;letter-spacing:1px;color:var(--brown)}
+  .headline{font-family:Georgia,serif;font-style:italic;margin-top:4px}
+
+  /* buttons */
+  .btn{min-height:48px;border:0;border-radius:14px;font-size:1rem;font-weight:700;padding:10px 14px;
+    background:var(--teal);color:#fff;cursor:pointer}
+  .btn:active{transform:scale(.97)}
+  .btn.big{width:100%;min-height:60px;font-size:1.25rem;background:var(--marigold);color:var(--brown)}
+  .btn.ghost{background:#f3e7cf;color:var(--brown)}
+  .btn.sel{background:var(--brown);color:#fff}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* stock rows */
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:0}
+  .row .info{flex:1;min-width:0}
+  .row .btns{display:flex;gap:6px}
+  .row .btns .btn{font-size:.85rem;padding:8px 10px;min-height:44px}
+
+  /* steppers */
+  .stepper{display:flex;align-items:center;gap:10px;margin:10px 0}
+  .stepper .val{flex:1;text-align:center}
+  .stepper .val b{display:block;font-size:1.1rem}
+  .stepper .val small{display:block}
+  .stepper .btn{width:54px;height:54px;border-radius:50%;font-size:1.7rem;padding:0}
+
+  .summary{background:var(--paper);border-radius:12px;padding:10px;line-height:1.6}
+  .good{color:var(--green);font-weight:700}
+  .bad{color:var(--red);font-weight:700}
+  .hint{font-size:.9rem;color:#7a5c3a;margin-top:8px;text-align:center}
+  details summary{cursor:pointer;font-weight:700;color:var(--brown);min-height:32px}
+  details ul{padding-left:18px;line-height:1.5;margin:6px 0}
+
+  /* weather */
+  .forecast{display:flex;gap:12px;align-items:center}
+  .wx-big{font-size:3rem;line-height:1}
+  .scene.wx-hot{background:linear-gradient(#ffb347,#ffd9a0)}
+  .scene.wx-cloudy{background:linear-gradient(#cfd8dc,#eceff1)}
+  .scene.wx-rain{background:linear-gradient(#90a4ae,#cfd8dc)}
+  .scene.wx-cold{background:linear-gradient(#b3d4e8,#e3f1f8)}
+
+  /* locations & shop (v0.3) */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px}
+  .chips .btn{flex:0 0 auto;min-height:44px;padding:8px 12px;font-size:.9rem}
+  .loc h3{display:flex;justify-content:space-between;gap:8px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .tag{background:#f3e7cf;border-radius:10px;padding:3px 8px;font-size:.82rem;color:var(--brown)}
+  .lvl{display:flex;gap:4px;margin:4px 0}
+  .lvl i{width:22px;height:8px;border-radius:4px;background:#ead9bb}
+  .lvl i.on{background:var(--teal)}
+  .split{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .split > div:first-child{flex:1;min-width:0}
+
+  /* run screen */
+  .scene{background:linear-gradient(#ffd98a,#ffe8b5);border-radius:16px;padding:12px;border:2px solid var(--line)}
+  .sign{text-align:center;font-weight:800;letter-spacing:2px;color:var(--brown)}
+  .stall{display:flex;align-items:flex-end;justify-content:center;gap:10px;font-size:3rem;margin:8px 0;position:relative}
+  .kettle.busy{animation:wobble .5s infinite alternate}
+  .steam{font-size:1.4rem;opacity:.0}
+  .busy + .steam{opacity:.8;animation:rise 1.2s infinite}
+  @keyframes wobble{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+  @keyframes rise{from{transform:translateY(4px);opacity:.9}to{transform:translateY(-12px);opacity:0}}
+  .queue{min-height:44px;font-size:1.7rem;text-align:center;letter-spacing:2px}
+  .clock{text-align:center;font-size:1.6rem;font-weight:800;color:var(--brown)}
+  .bar{height:10px;background:#f3e7cf;border-radius:6px;overflow:hidden;margin:6px 0}
+  .bar > i{display:block;height:100%;background:var(--teal);width:0}
+  .stats{display:flex;gap:8px;margin:10px 0}
+  .stats div{flex:1;background:#fff;border:2px solid var(--line);border-radius:12px;text-align:center;padding:8px}
+  .stats b{font-size:1.3rem;display:block}
+  .ticker{background:#fff;border:2px solid var(--line);border-radius:12px;padding:8px;min-height:190px}
+  .ticker div{padding:4px 2px;border-bottom:1px solid #f3e7cf;font-size:.95rem;animation:pop .25s}
+  .ticker div:last-child{border-bottom:0}
+  .ticker .info{color:var(--teal);font-weight:700}
+  .ticker .pass{color:#8b6b4a}
+  .ticker .lost{color:var(--red)}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .controls{display:flex;gap:8px;margin-top:10px}
+  .controls .btn{flex:1}
+  .controls .btn.active{background:var(--brown);color:#fff}
+
+  /* report */
+  .verdict{text-align:center}
+  .verdict h2{font-size:1.5rem;color:var(--brown)}
+  .table{width:100%;border-collapse:collapse}
+  .table td{padding:6px 2px;border-top:1px solid var(--line)}
+  .table td:last-child{text-align:right;font-weight:700}
+  .table tr.total td{border-top:2px solid var(--brown);font-size:1.2rem}
+  .repbar{height:14px;background:#f3e7cf;border-radius:8px;overflow:hidden;margin:6px 0}
+  .repbar > i{display:block;height:100%;background:var(--marigold)}
+  ul.fb{padding-left:18px;line-height:1.6;margin:6px 0}
+
+  /* events, menu, staff (v0.4) */
+  .card.event{background:#fff8e6;border-color:var(--marigold)}
+  .card.event .row-top{display:flex;gap:12px;align-items:flex-start}
+  .card.event .big-emoji{font-size:2.2rem;line-height:1}
+  .choices{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .choices .btn{text-align:left}
+  .mini-stepper{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .mini-stepper .btn{width:44px;height:44px;border-radius:50%;font-size:1.3rem;padding:0;min-height:44px}
+  .mini-stepper b{min-width:56px;text-align:center}
+  .switch{display:flex;align-items:center;gap:10px;margin-top:8px}
+
+  /* v0.5: art, records, overlays */
+  .gear{flex:0 0 46px;border:0;border-radius:14px;background:var(--brown);color:#fff;font-size:1.25rem;cursor:pointer}
+  .scene{padding:0;overflow:hidden}
+  .scene svg.art{display:block;width:100%;height:auto}
+  .scene .cap{text-align:center;font-weight:700;color:var(--brown);font-size:.9rem;padding:6px 8px;background:rgba(255,250,240,.92)}
+  .scene .queue{padding:4px 8px 8px;background:rgba(255,250,240,.92);min-height:48px}
+  .scene.mini{margin:10px 0}
+  .art .drops{animation:fall .5s linear infinite}
+  .art .drift{animation:drift 9s ease-in-out infinite alternate}
+  .art .flame{transform-box:fill-box;transform-origin:50% 100%;animation:flicker .35s infinite alternate}
+  .art .steamg{opacity:0;transition:opacity .3s}
+  .art .kettle.busy ~ .steamg{opacity:1}
+  .art .steamg path{animation:wisp 1.4s ease-in infinite}
+  .art .steamg path:nth-child(2){animation-delay:.45s}
+  .art .steamg path:nth-child(3){animation-delay:.9s}
+  .art .twinkle{animation:twinkle 1.2s steps(2) infinite}
+  .art .kettle.busy{transform-box:fill-box;transform-origin:50% 100%}
+  @keyframes fall{from{transform:translateY(0)}to{transform:translateY(40px)}}
+  @keyframes drift{from{transform:translateX(-14px)}to{transform:translateX(14px)}}
+  @keyframes flicker{from{transform:scaleY(.8)}to{transform:scaleY(1.15)}}
+  @keyframes wisp{from{transform:translateY(6px);opacity:.9}to{transform:translateY(-14px);opacity:0}}
+  @keyframes twinkle{50%{opacity:.35}}
+  @media (prefers-reduced-motion: reduce){ .art *{animation:none !important} }
+
+  .recgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .recgrid div{background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:8px;text-align:center}
+  .recgrid b{display:block;font-size:1.25rem;color:var(--brown)}
+  .ach{display:flex;gap:12px;align-items:center}
+  .ach .badge{font-size:2rem;width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f3e7cf;flex:0 0 52px}
+  .ach.done .badge{background:var(--marigold)}
+  .ach.lock .badge{filter:grayscale(1);opacity:.55}
+  .ach .meter{height:8px;border-radius:5px;background:#f3e7cf;overflow:hidden;margin-top:6px}
+  .ach .meter i{display:block;height:100%;background:var(--teal)}
+  .newach{background:#fff8e6;border:2px solid var(--marigold)}
+
+  #overlay{display:none}
+  #overlay.on{display:block}
+  #overlay .scrim{position:fixed;inset:0;z-index:20;background:rgba(45,27,12,.55);display:flex;align-items:flex-end;justify-content:center}
+  #overlay .sheet{background:var(--cream);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+  #overlay .sheet h2{color:var(--brown);margin-bottom:10px}
+  #overlay .line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+  #overlay .line .btn{min-width:92px}
+  #overlay .stack{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+  #overlay .tut{text-align:center}
+  #overlay .tut .big{font-size:3.2rem}
+  #overlay .dots{display:flex;gap:6px;justify-content:center;margin:12px 0}
+  #overlay .dots i{width:9px;height:9px;border-radius:50%;background:#ead9bb}
+  #overlay .dots i.on{background:var(--teal)}
+
+  /* v0.5.1: responsive layout — phone = one column, tablet = wider column, desktop/landscape = two columns */
+  .content > .card, .content > .scene, .content > .gazette{break-inside:avoid}
+  @media (min-width:640px){
+    #app{max-width:780px}
+    .nav .in{max-width:780px}
+  }
+  @media (min-width:1000px){
+    html{font-size:17px}
+    #app{max-width:1240px;padding:12px 28px 110px}
+    .nav .in{max-width:1240px}
+    .content{column-count:2;column-gap:24px}
+    .content > .gazette, .content > .scene.mini, .content > h3, .content > .hint, .content > .card.verdict, .content > .card.event{column-span:all}
+    .content > .scene.mini{max-width:640px;margin-left:auto;margin-right:auto;width:100%}
+    .content > .gazette{margin-bottom:6px}
+    .content > .card{margin-top:0;margin-bottom:16px}
+    .content > .card.verdict{margin-bottom:16px}
+    .runwrap{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;align-items:start;margin-top:10px}
+    .runwrap .ticker{min-height:360px}
+    .btn.big{max-width:560px;display:block;margin:12px auto}
+    .stepper .btn{width:58px;height:58px}
+  }
+  @media (min-width:1400px){ html{font-size:18px} }
+  /* short landscape screens (phones turned sideways): keep the scene from eating the whole height */
+  @media (max-height:520px){ .scene svg.art{max-height:48vh} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* Language: English (default) or Hinglish. Chosen in Settings and stored outside the save; switching reloads the page,
+   so every text in CONFIG below is built once, in the chosen language. tr(english, hinglish) picks one. */
+const LANG = (() => { try { return JSON.parse(localStorage.getItem("chaiwala-tycoon-settings") || "{}").lang === "hi" ? "hi" : "en"; } catch (e) { return "en"; } })();
+const tr = (en, hi) => LANG === "hi" ? hi : en;
+/* =====================================================================
+   CHAIWALA TYCOON — v0.4  (random events, menu extensions, staff)
+   Layout of this file:
+     1. CONFIG   – every number you might want to tune lives here
+     2. STATE    – the player's save data (plain object)
+     3. LOGIC    – pure game math, no DOM
+     4. UI       – rendering + input, no game math
+   ===================================================================== */
+
+/* =====================================================================
+   1. CONFIG  (tweak balance here, never in the logic)
+   ===================================================================== */
+const CONFIG = {
+  startCash: 500,           // ₹ at the very start
+  restartCash: 300,         // ₹ udhaar after going bankrupt
+  startReputation: 50,      // 0..100
+
+  // ---- the day ----
+  dayStartHour: 6,          // stall opens 6 AM...
+  dayHours: 12,             // ...and closes 6 PM
+  footfall: { base: 0.5, perRepPoint: 0.01 },   // reputation multiplier = 0.5 + rep/100  (0.5x .. 1.5x)
+
+  // ---- weather & seasons ----
+  seasonLengthDays: 10,     // each season lasts this many days, then the next begins (cycles forever)
+  forecastAccuracy: 0.75,   // chance the morning forecast is right
+  weathers: {               // mult = multiplies how many people walk past your cart
+    sunny:  { name: tr("Sunny", "Dhoop"),          emoji: "☀️", mult: 1.0,  tip: tr("Clear skies — an ordinary day.", "Saaf mausam — aam din.") },
+    hot:    { name: tr("Scorching heat", "Jhulsati garmi"), emoji: "🥵", mult: 0.7,  tip: tr("Who wants hot chai in this heat?", "Itni garmi mein kaun peeta hai garam chai?") },
+    cloudy: { name: tr("Cloudy", "Badal"),          emoji: "⛅", mult: 1.05, tip: tr("Clouds are rolling in — a slightly bigger chai mood.", "Badal chhaye hain — thoda extra chai ka mood.") },
+    rain:   { name: tr("Rain", "Baarish"),        emoji: "🌧️", mult: 1.25, tip: tr("Rain + chai = love! Stock extra milk.", "Baarish + chai = pyaar! Zyada doodh rakhna.") },
+    cold:   { name: tr("Cold snap", "Thand"),          emoji: "🥶", mult: 1.3,  tip: tr("Bone-chilling cold — perfect weather for ginger chai!", "Kadakadati thand — adrak wali chai ka mausam!") },
+  },
+  seasons: [                // weights = how likely each kind of weather is during that season
+    { name: tr("Winter", "Sardi (Winter)"),    emoji: "🧣", weights: { cold: 4, sunny: 3, cloudy: 2, rain: 0.5 } },
+    { name: tr("Summer", "Garmi (Summer)"),    emoji: "🌞", weights: { hot: 4, sunny: 3, cloudy: 1, rain: 0.3 } },
+    { name: tr("Monsoon", "Barsaat (Monsoon)"), emoji: "☔", weights: { rain: 5, cloudy: 3, sunny: 1, hot: 1 } },
+  ],
+  // ---- achievements (v0.5): badges only, no rewards. stat = what is counted, goal = when it unlocks ----
+  //   money:true shows the number as ₹. Stats are lifetime (they survive bankruptcy, not "Naya khel").
+  achievements: [
+    { id: "cups100",   emoji: "☕", name: tr("First 100 Cups", "Pehle 100 cups"),        desc: tr("Sell 100 cups in total", "Total 100 cups becho"),                    stat: "cups",        goal: 100 },
+    { id: "cups1000",  emoji: "🫖", name: tr("Thousand-Cup Chaiwala", "Hazaari Chaiwala"),      desc: tr("Sell 1,000 cups in total", "Total 1,000 cups becho"),                  stat: "cups",        goal: 1000 },
+    { id: "cups5000",  emoji: "👑", name: tr("Chai Emperor", "Chai Samrat"),           desc: tr("Sell 8,000 cups in total", "Total 8,000 cups becho"),                  stat: "cups",        goal: 8000 },
+    { id: "days30",    emoji: "📅", name: tr("A Full Month", "Ek mahina pura"),        desc: tr("Run your stall for 30 days", "30 din tak dukaan chalao"),                stat: "days",        goal: 30 },
+    { id: "rain",      emoji: "🌧️", name: tr("Rain Master", "Baarish ka Badshah"),    desc: tr("Sell 150 cups on rainy days", "Baarish mein 150 cups becho"),             stat: "rainCups",    goal: 150 },
+    { id: "cutting",   emoji: "✂️", name: "Cutting Chai King",     desc: tr("Sell 100 cutting (half) cups", "100 cutting (aadhe cup) becho"),           stat: "cuttingSold", goal: 100 },
+    { id: "snacks",    emoji: "🧆", name: "Snack Sultan",          desc: tr("Sell 200 snacks", "200 snacks becho"),                        stat: "snacksSold",  goal: 200 },
+    { id: "honest",    emoji: "🧾", name: tr("Honest Chaiwala", "Imaandaar Chaiwala"),    desc: tr("Pay the inspector's fine honestly 2 times", "Inspector ko 2 baar imaandaari se jurmana bharo"), stat: "honestFines", goal: 2 },
+    { id: "viral",     emoji: "📸", name: "Viral Reel",            desc: tr("Win a 5-star review from the food blogger", "Food blogger se 5-star review pao"),       stat: "goodBlogger", goal: 1 },
+    { id: "famous",    emoji: "⭐", name: tr("Famous", "Mashhoor"),              desc: tr("Reach Reputation 90", "Naam 90 tak pahunchao"),                   stat: "peakRep",     goal: 90 },
+    { id: "bestday",   emoji: "💥", name: tr("Blockbuster Day", "Dhamaakedaar Din"),      desc: tr("Make ₹1,500 profit in a single day", "Ek din mein ₹1,500 ka profit"),            stat: "bestProfit",  goal: 1500, money: true },
+    { id: "places",    emoji: "🗺️", name: tr("On Every Street", "Har gali mein apna naam"), desc: tr("Open all 6 locations", "Saari 6 jagah kholo"),                   stat: "places",      goal: 6 },
+    { id: "team",      emoji: "🧑‍🤝‍🧑", name: tr("The Whole Family", "Pura Parivaar"),        desc: tr("Hire all 3 staff", "Teeno staff rakho"),                        stat: "staffCount",  goal: 3 },
+    { id: "cash10k",   emoji: "💰", name: tr("First ₹10,000", "Pehle ₹10,000"),         desc: tr("Save up ₹10,000 in cash", "Gallu mein ₹10,000 ikattha karo"),         stat: "peakCash",    goal: 10000, money: true },
+    { id: "lakhpati",  emoji: "🤑", name: tr("Millionaire Chaiwala", "Lakhpati Chaiwala"),     desc: tr("₹1,00,000 in cash — you're a tycoon!", "Gallu mein ₹1,00,000 — tycoon ban gaye!"), stat: "peakCash",    goal: 100000, money: true },
+  ],
+
+  // ---- how-to-play cards (shown on the very first launch, and from ⚙️ Settings) ----
+  tutorial: [
+    { emoji: "🫖", title: tr("Welcome, new chaiwala!", "Namaste, naye chaiwale!"), text: tr("You have ₹500 and a small cart. Sell chai, grow your business, and become the biggest chai tycoon in town.", "Tumhare paas ₹500 aur ek chhota sa thela hai. Is khel mein tum chai bechkar poore sheher ke sabse bade chai tycoon banoge.") },
+    { emoji: "🛒", title: tr("1. Buy stock", "1. Saaman kharido"), text: tr("On the Today tab, buy tea, milk and sugar. Careful: milk lasts only 1 day and spoils overnight!", "Aaj tab mein patti, doodh aur cheeni kharido. Dhyaan rakho: doodh sirf 1 din chalta hai, raat ko kharab ho jata hai!") },
+    { emoji: "🥄", title: tr("2. Recipe and price", "2. Recipe aur daam"), text: tr("Every customer has their own taste — some want it strong, some sweet. Price too high and people walk on by. Read the feedback and tune your recipe.", "Har customer ka apna swaad hai — koi kadak chahta hai, koi meetha. Daam bahut zyada rakha toh log aage badh jayenge. Feedback padho, recipe sudharo.") },
+    { emoji: "🌦️", title: tr("3. Watch the weather", "3. Mausam dekho"), text: tr("More people drink chai in rain and cold, fewer in scorching heat. The forecast is only right 75% of the time!", "Baarish aur thand mein zyada log chai peete hain; jhulsati garmi mein kam. Forecast sirf 75% sahi hota hai — kabhi kabhi galat bhi!") },
+    { emoji: "☕", title: tr("4. Open the stall", "4. Dukaan kholo"), text: tr("Watch the day unfold, then read the evening report. Happy customers raise your Reputation, and Reputation brings crowds.", "Din chalta dekho, phir shaam ki report padho. Customer ki khushi se tumhara Naam badhta hai, aur Naam se bheed.") },
+    { emoji: "🏆", title: tr("5. Become a tycoon", "5. Tycoon bano"), text: tr("Spend your profits on new places, menu items, staff and equipment. Check the 🏆 Records tab for badges and your best days.", "Kamayi se nayi jagah, menu, staff aur saaz-o-saaman kharido. 🏆 Records tab mein badges aur apne best din dekho.") },
+  ],
+
+  saveKey: "chaiwala-tycoon-save",
+  saveVersion: 5,
+  settingsKey: "chaiwala-tycoon-settings",   // sound on/off + "tutorial seen" (kept even when you start a new game)
+  minLoadableVersion: 2,    // older saves from these versions are upgraded instead of thrown away
+
+  // ---- ingredients (water is free!) ----
+  // shelfLifeDays: how many days a batch lasts. 1 = only usable the day you buy it. null = never spoils.
+  ingredients: {
+    tea:   { name: tr("Tea leaves", "Chai patti"), emoji: "🍃", unit: "g",  packSize: 100, packPrice: 40, shelfLifeDays: 30 },
+    milk:  { name: tr("Milk", "Doodh"), emoji: "🥛", unit: "ml", packSize: 500, packPrice: 30, shelfLifeDays: 1, coolable: true },
+    sugar: { name: tr("Sugar", "Cheeni"), emoji: "🍬", unit: "g",  packSize: 250, packPrice: 11, shelfLifeDays: null },
+    masala:{ name: tr("Masala (ginger-cardamom)", "Masala (adrak-elaichi)"), emoji: "🌿", unit: "g", packSize: 50, packPrice: 35, shelfLifeDays: 20, needs: "masala" },   // shown once Masala chai is unlocked
+  },
+  cupMl: 100,               // one cup = 100 ml
+
+  // ---- recipe knobs the player controls ----
+  recipe: {
+    strength:  { min: 1,  max: 5,  step: 1,  default: 3,  gramsPerLevel: 1 }, // tea g per cup = level * 1
+    sweetness: { min: 0,  max: 4,  step: 1,  default: 2,  gramsPerSpoon: 5 }, // sugar g per cup = spoons * 5
+    milk:      { min: 20, max: 90, step: 10, default: 60 },                   // % of the cup that is milk
+    spice:     { min: 0,  max: 3,  step: 1,  default: 0,  gramsPerLevel: 0.5 }, // masala g per cup = level * 0.5 (needs Masala chai)
+  },
+  price: { min: 5, max: 25, step: 1, default: 10 },
+
+  // ---- locations (v0.3) ----
+  // passersby = people walking past on an average day (at reputation 50, sunny).
+  // hourWeights = how busy each hour is, 6AM..5PM. mix = relative share of each customer type.
+  // wtpMult / patienceMult = how rich / how hurried people are here.
+  locations: {
+    street: { name: tr("Street corner", "Nukkad (Street corner)"), emoji: "🏘️", unlock: 0, rent: 30, passersby: 80,
+      hourWeights: [1, 2.5, 3, 1.5, 1, 1, 1.5, 1, 1, 1.5, 2.5, 3],
+      mix: { office: 1, student: 1, auto: 1, tourist: 0.5, uncle: 0.7 },
+      blurb: "Mixed crowd, low volume. Your starting spot." },
+    college: { name: "College campus", emoji: "🎓", unlock: 700, rent: 60, passersby: 320, wtpMult: 0.85,
+      hourWeights: [0.3, 1, 1.5, 2, 3, 3, 2.5, 2, 2, 2, 1.2, 0.5],
+      mix: { student: 6, office: 0.3, uncle: 0.3, tourist: 0.3 },
+      blurb: "Students: huge crowds but thin wallets. Love cheap, sweet chai. Needs a big kettle!" },
+    station: { name: "Railway station", emoji: "🚉", unlock: 1500, rent: 200, passersby: 190, patienceMult: 0.7,
+      hourWeights: [2, 4, 5, 2.5, 1, 1, 1, 1.2, 2, 4, 5, 3],
+      mix: { office: 3, student: 1, auto: 0.5, tourist: 1, uncle: 0.7 },
+      blurb: "Commuters, high volume, impatient. A slow stove will cost you!" },
+    office: { name: "Office district", emoji: "🏢", unlock: 2500, rent: 250, passersby: 120, wtpMult: 1.2,
+      hourWeights: [0.5, 3, 4, 2, 1, 2.5, 3, 1, 1, 2, 3.5, 3],
+      mix: { office: 5, student: 0.3, tourist: 0.5, uncle: 0.7 },
+      blurb: "Professionals will pay more. Morning, lunch and evening rushes." },
+    dhaba: { name: "Highway dhaba", emoji: "🛣️", unlock: 2000, rent: 150, passersby: 70, patienceMult: 1.5,
+      hourWeights: [1, 1.2, 1.5, 2, 2.5, 3, 3, 2.5, 2, 2, 2.5, 2],
+      mix: { trucker: 5, tourist: 2, auto: 1, uncle: 1 },
+      blurb: "Truckers and travellers: long stays, big group orders." },
+    stadium: { name: "Cricket stadium", emoji: "🏟️", unlock: 3500, rent: 350, passersby: 30, patienceMult: 0.8,
+      hourWeights: [0.2, 0.2, 0.4, 0.4, 0.5, 0.5, 0.8, 1.2, 2, 3.5, 5, 5],
+      mix: { fan: 5, office: 1, student: 1, tourist: 1 },
+      blurb: "Nearly empty on normal days, absolutely packed on IPL match days. Event-dependent!" },
+  },
+
+  // ---- customer types (v0.3) ----
+  // strength / sweet / milk = their ideal chai (mean, spread). wtp = their "fair price" in ₹.
+  // patience = minutes they'll wait [min,max]. qty = cups per order [min,max]. satBias = grumpy (-) or friendly (+).
+  customerTypes: {
+    office:  { name: tr("Office worker", "Office wala"),  emoji: "🧑‍💼", strength: [3, .7],  sweet: [1.5, .8], milk: [60, 10], spice: [1.2, .7], wtp: [13, 3], patience: [6, 12],  qty: [1, 1], satBias: 0 },
+    student: { name: "Student",      emoji: "🎓", strength: [2.5, .8], sweet: [3, .8],   milk: [65, 10], spice: [1, .7],   wtp: [7, 2],  patience: [10, 20], qty: [1, 1], satBias: 0 },
+    auto:    { name: "Auto driver",  emoji: "🛺", strength: [4, .7],  sweet: [2, .8],   milk: [55, 10], spice: [1.5, .7], wtp: [9, 2],  patience: [6, 14],  qty: [1, 1], satBias: 0 },
+    tourist: { name: "Tourist",      emoji: "📸", strength: [2.5, .8], sweet: [2, .9],   milk: [70, 10], spice: [2, .7],   wtp: [16, 4], patience: [10, 20], qty: [1, 1], satBias: 0 },
+    uncle:   { name: tr("Grumpy uncle", "Pareshaan uncle"), emoji: "👴", strength: [3, .5], sweet: [1, .6],  milk: [50, 8],  spice: [.5, .5],  wtp: [9, 2],  patience: [8, 16],  qty: [1, 1], satBias: -0.15 },
+    trucker: { name: "Trucker",      emoji: "🚚", strength: [4, .7],  sweet: [3, .8],   milk: [55, 10], spice: [2, .7],   wtp: [13, 3], patience: [14, 26], qty: [1, 3], satBias: 0 },
+    fan:     { name: "Cricket fan",  emoji: "🏏", strength: [4, .7],  sweet: [2.5, .8], milk: [60, 10], spice: [1.5, .7], wtp: [15, 4], patience: [8, 16],  qty: [1, 2], satBias: 0 },
+    // regulars like roughly what you already serve ("near" = how far from your recipe they can be)
+    regular: { name: "Regular",      emoji: "🤝", near: { strength: .5, sweet: .6, milk: 8, spice: .5 }, wtp: [11, 2], patience: [12, 24], qty: [1, 1], satBias: 0.05 },
+  },
+  regulars: {
+    perLoyalty: 1.5,        // each loyalty point brings 1.5 extra regular customers per day
+    maxLoyalty: 12,
+    gainPerSat: 10,         // loyalty change per day = (avg satisfaction - 0.75) * this   (needs 10+ cups)
+    baselineSat: 0.75,
+    minCups: 10,
+  },
+  wtpLimits: { min: 4, max: 30 },
+
+  // ---- upgrades (v0.3) ----
+  // levels[0] is what you start with. Each later level: cost (₹), optional minRep, desc, and its effect.
+  upgrades: {
+    kettle: { name: tr("Bigger kettle", "Bada kettle"), emoji: "🫖", group: "Equipment", levels: [
+      { batch: 1, desc: "1 cup per brew" },
+      { cost: 500,  batch: 2, desc: "2 cups per brew" },
+      { cost: 1400, batch: 3, desc: "3 cups per brew" },
+      { cost: 3000, batch: 4, desc: "4 cups per brew" } ] },
+    stove: { name: tr("Better stove", "Behtar chulha"), emoji: "🔥", group: "Equipment", levels: [
+      { serviceMin: 5,   desc: "5 min per brew" },
+      { cost: 450,  serviceMin: 4.2, desc: "4.2 min per brew" },
+      { cost: 1100, serviceMin: 3.5, desc: "3.5 min per brew" },
+      { cost: 2300, serviceMin: 3,   desc: "3 min per brew" } ] },
+    cooler: { name: tr("Milk cooler", "Doodh ka cooler"), emoji: "🧊", group: "Equipment", levels: [
+      { milkLifeBonus: 0, desc: "Milk lasts 1 day" },
+      { cost: 700, milkLifeBonus: 1, desc: "Milk lasts 1 extra day" } ] },
+    signboard: { name: "Signboard", emoji: "🪧", group: "Marketing", levels: [
+      { footfall: 1 }, { cost: 300, footfall: 1.08, desc: "+8% people notice you" } ] },
+    loudspeaker: { name: "Loudspeaker jingle", emoji: "📢", group: "Marketing", levels: [
+      { footfall: 1 }, { cost: 800, footfall: 1.08, desc: "+8% people notice you" } ] },
+    listing: { name: tr("Delivery-app listing", "Zomato-style listing"), emoji: "📱", group: "Marketing", levels: [
+      { footfall: 1 }, { cost: 2500, minRep: 60, footfall: 1.12, desc: tr("+12% people notice you (needs Reputation 60)", "+12% people notice you (needs Naam 60)") } ] },
+  },
+  // cup types: cost = ₹ per cup, wtpMult = customers value the cup more, sat = happiness bonus
+  cups: {
+    paper:  { name: "Paper cup",  emoji: "🥤", unlock: 0,   cost: 0.5, wtpMult: 1.0,  sat: 0,    blurb: "Cheap and cheerful." },
+    glass:  { name: "Glass",      emoji: "🥃", unlock: 400, cost: 1.0, wtpMult: 1.05, sat: 0.03, blurb: "Looks proper. Needs washing, but people like it." },
+    kulhad: { name: "Kulhad",     emoji: "🏺", unlock: 1200, cost: 2.0, wtpMult: 1.12, sat: 0.08, blurb: tr("Clay cup: premium, eco-friendly, with that earthy smell of wet clay.", "Clay cup: premium, eco-friendly, that mitti ki khushboo.") },
+  },
+
+  // ---- menu extensions (v0.4) ----
+  menuFeatures: {
+    masala:  { name: "Masala chai", emoji: "🌿", unlock: 400, blurb: tr("Ginger-cardamom masala: a new recipe knob. Tourists and truckers love it; uncles, less so.", "Adrak-elaichi masala: a new recipe knob. Tourists and truckers love it; uncles, less so.") },
+    cutting: { name: "Cutting chai", emoji: "✂️", unlock: 350, blurb: "A half cup at a lower price. People who found your chai too dear buy this instead." },
+  },
+  cutting: { priceRatio: 0.55, valueRatio: 0.75, usage: 0.5 },   // cutting costs 55% of a cup; people value it at 75% of a cup; uses half the ingredients
+  spiceWeight: 0.2,         // share of the taste score decided by masala (only once Masala chai is unlocked)
+  // snacks are sold on top of a cup. attach = chance a happy customer also buys one. weather = how the weather changes that chance.
+  snacks: {
+    biscuit: { name: "Biscuit",      emoji: "🍪", unlock: 150, unit: "pcs",     packSize: 10, packPrice: 20, shelfLifeDays: 14, price: 5,  fair: 5,  attach: 0.22, weather: {} },
+    bun:     { name: "Bun maska",    emoji: "🍞", unlock: 300, unit: "pcs",     packSize: 6,  packPrice: 48, shelfLifeDays: 1,  price: 15, fair: 15, attach: 0.16, weather: { cold: 1.4, hot: 0.7 } },
+    samosa:  { name: "Samosa",       emoji: "🥟", unlock: 500, unit: "pcs",     packSize: 10, packPrice: 60, shelfLifeDays: 1,  price: 12, fair: 12, attach: 0.20, weather: { rain: 1.7, cold: 1.3, hot: 0.6 } },
+    pakoda:  { name: "Pakoda plate", emoji: "🧆", unlock: 650, unit: "plates",  packSize: 8,  packPrice: 64, shelfLifeDays: 1,  price: 18, fair: 17, attach: 0.18, weather: { rain: 2.4, cloudy: 1.5, cold: 1.2, hot: 0.4 } },
+    lassi:   { name: "Lassi",        emoji: "🍹", unlock: 700, unit: "glasses", packSize: 6,  packPrice: 42, shelfLifeDays: 1,  price: 20, fair: 18, attach: 0.15, weather: { hot: 3.2, sunny: 1.2, cloudy: 0.8, rain: 0.3, cold: 0.15 } },
+  },
+  snackPrice: { min: 3, max: 40, step: 1 },
+
+  // ---- staff (v0.4): paid every day you open ----
+  staff: {
+    helper:  { name: "Chhotu (helper)",    emoji: "🧒", wage: 70,  batchBonus: 1,     desc: "Serves faster: +1 cup per brew" },
+    cook:    { name: "Kaka (cook)",        emoji: "👨‍🍳", wage: 110, serviceMult: 0.8, desc: "Brews 20% faster" },
+    manager: { name: "Munim ji (manager)", emoji: "🧾", wage: 200, minRep: 60,        desc: tr("Buys the day's stock for you. Needs Reputation 60.", "Buys the day's stock for you. Needs Naam 60.") },
+  },
+  managerBudget: 0.5,       // the manager never spends more than this share of your cash
+  managerDefaultBuyRate: 0.5, // before he has seen a place: he guesses half of the people walking past will buy
+
+  // ---- random events (v0.4) ----
+  // eventChance = chance a new event starts on a normal morning. footfall: {placeId or "all": multiplier}.
+  // priceMult = ingredient prices. wtpMult = how much people will pay. idealShift = what people want in their chai today.
+  // days = how long it lasts. seasons = only in those seasons (0 winter, 1 summer, 2 monsoon). needs = place you must own.
+  eventChance: 0.3, eventMinDay: 3, eventCooldownDays: 2,
+  bloggerRep: 8,            // reputation won (or lost) from the food blogger
+  bribeScandalChance: 0.06, // per day, per bribe you have paid, that it comes out
+  events: {
+    inspector: { name: "Municipal inspector", emoji: "👮", weight: 2,
+      text: tr("The inspector wants to see your licence. Your papers are incomplete... What will you do?", "Inspector sahab licence maang rahe hain. Papers adhoore hain... Kya karoge?"),
+      choice: [
+        { label: tr("Pay the fine (₹150)", "Chalaan bharo (₹150)"), cash: -150, honest: true, text: tr("Paid the fine and got a receipt. The peace of an honest conscience!", "Jurmana bhara, receipt li. Imaandari ka sukoon!") },
+        { label: tr("Slip him something under the table (₹60)", "Chai-paani do (₹60)"),  cash: -60,  bribe: true,  text: tr("A little something slipped across and it's sorted... but it nags at your conscience.", "Thoda 'chai-paani' diya aur kaam ho gaya... par dil mein kuch khatka.") } ] },
+    scandal:   { name: tr("Bribe scandal!", "Bribe ka bhandaphod!"), emoji: "📰", weight: 0,
+      text: tr("Someone filmed your under-the-table payment! A fine and bad press, both.", "Kisi ne tumhara 'chai-paani' ka video bana liya! Jurmana bhi, badnaami bhi."), instant: { cash: -250, rep: -12 } },
+    milk_hike: { name: tr("Milk price hike", "Doodh ke daam badhe"), emoji: "📈", weight: 2, days: 3, priceMult: { milk: 1.5 },
+      text: tr("The dairy raised its prices. Milk is 50% pricier — for 3 days.", "Dairy wale ne daam badha diye. Doodh 50% mehenga hai — 3 din tak.") },
+    diwali:    { name: "Diwali!", emoji: "🪔", weight: 1.5, seasons: [0], footfall: { all: 1.3 }, wtpMult: 1.15, idealShift: { sweet: 1 },
+      text: tr("The festival of lights! People are cheerful, craving sweets, and feeling generous.", "Roshni ka tyohaar! Log khush hain, meetha chahiye, aur jeb bhi dheeli.") },
+    holi:      { name: "Holi hai!", emoji: "🎨", weight: 1.5, seasons: [0], footfall: { all: 1.2 }, wtpMult: 1.05, idealShift: { sweet: 1, milk: 10 },
+      text: tr("Colours everywhere! Everyone wants something sweet and creamy, thandai-style.", "Rang barse! Sab thandai jaisa meetha, malaidaar chahte hain.") },
+    ganesh:    { name: "Ganesh Chaturthi", emoji: "🐘", weight: 1.5, seasons: [2], footfall: { all: 1.2 }, wtpMult: 1.05, idealShift: { sweet: 1 },
+      text: tr("Ganpati Bappa Morya! Immersion crowds, and everyone wants chai after the prasad.", "Ganpati bappa morya! Visarjan ki bheed, aur sabko prasad ke baad chai chahiye.") },
+    mela:      { name: tr("Street fair", "Nukkad ka mela"), emoji: "🎡", weight: 1.5, footfall: { street: 1.7 },
+      text: tr("A fair has come to the street corner — the street corner is packed!", "Gali ke nukkad par mela laga hai — Nukkad par bheed hi bheed!") },
+    ipl:       { name: "IPL match tonight!", emoji: "🏏", weight: 2, needs: "stadium", footfall: { stadium: 9, all: 0.9 }, wtpMult: 1.1,
+      text: tr("There's a match at the stadium today! Set up there for a mob of fans. Elsewhere, people are glued to their TVs.", "Aaj stadium mein match hai! Stadium mein baitho to bheed ki bheed. Baaki jagah log TV ke saamne chipke hain.") },
+    strike:    { name: "Transport strike", emoji: "🚧", weight: 1.5, days: 2, footfall: { station: 0.3, office: 0.7, dhaba: 0.4, all: 1.05 },
+      text: tr("Buses and trains are off! The station and dhaba are quiet, but people are walking around the street. Lasts 2 days.", "Bus-train band! Station aur dhaba suna, par gali mein log paidal ghoom rahe hain. 2 din chalega.") },
+    blogger:   { name: tr("Food blogger visits!", "Food blogger aaya!"), emoji: "📸", weight: 1.5, footfall: { all: 1.15 }, blogger: true,
+      text: tr("A food blogger is coming to try your chai. Great chai = viral review. Bad chai = viral roast!", "Ek food blogger tumhari chai try karne aa raha hai. Achhi chai = viral review. Kharab chai = viral roast!") },
+    heavyrain: { name: tr("Heavy downpour!", "Bhaari baarish!"), emoji: "⛈️", weight: 1.2, seasons: [2], forceWeather: "rain", footfall: { street: 0.7, college: 0.7, dhaba: 0.7, stadium: 0.5, station: 1.1, office: 1.1 },
+      text: tr("Torrential rain! People in the open ran for cover. Crowds are sheltering in the station and offices.", "Moosladhaar baarish! Khuli jagah par log bheeg ke bhaag gaye. Station aur office mein bheed panah le rahi hai.") },
+  },
+
+  // ---- satisfaction & reputation ----
+  satisfaction: {
+    tasteWeights: { strength: 0.4, sweet: 0.3, milk: 0.3 },     // how much each knob matters for taste (masala takes its share on top)
+    valueFloor: 0.5,        // customer pays up to  fairPrice * (valueFloor + valueSwing * taste)
+    valueSwing: 0.8,
+    weights: { taste: 0.5, price: 0.3, wait: 0.2 },             // satisfaction = mix of the three
+  },
+  reputation: {
+    baselineSat: 0.65,      // satisfaction above this grows reputation, below shrinks it
+    perSatPoint: 20,        // rep change = (avgSat - baseline) * this
+    fullEffectCups: 20,     // days with fewer cups count for less
+    soldOutPenalty: 0.15,   // rep lost per customer turned away because you ran out
+    soldOutPenaltyCap: 5,
+    noSalesPenalty: 2,
+  },
+  feedbackThreshold: { strength: 0.5, sweet: 0.6, milk: 8, spice: 0.6 },    // avg miss before a customer type "says something"
+
+  // ---- playback ----
+  tickMs: 40,
+  playbackSpeeds: [2, 5, 12],   // sim-minutes per tick (▶ ▶▶ ▶▶▶)
+
+  // ---- flavour text ----
+  headlines: tr([
+    "More people than ever are drinking chai!",
+    "Cutting or full, chai is everyone's favourite!",
+    "One cup of chai, a hundred worries gone.",
+    "A street-corner stall with a heart of gold.",
+    "Morning chai: the start of every good day.",
+    "Today's horoscope: a long chat over chai is guaranteed.",
+  ], [
+    "Chai peene walon ki sankhya mein izaafa!",
+    "Cutting ho ya full, chai sabki favourite!",
+    "Ek kapp chai, sau gham door.",
+    "Nukkad ki dukaan, dil ki shaan.",
+    "Subah ki chai, din ki shuruaat.",
+    "Aaj ka rashifal: chai pe charcha pakki.",
+  ]),
+  strengthLabels:  tr(["Very weak", "Weak", "Okay", "Strong", "Extra strong"], ["Bahut halki", "Halki", "Theek-thaak", "Kadak", "Ekdum kadak"]),
+  sweetnessLabels: tr(["Unsweetened", "Lightly sweet", "Medium sweet", "Sweet", "Very sweet"], ["Feeki", "Halki meethi", "Theek meethi", "Meethi", "Bahut meethi"]),
+  text: {
+    happy:  tr(["Wow, what a chai!", "One more, please!", "Just like home!", "Made my day!", "Now that's what I call chai!"], ["Wah, kadak chai, bhaiya!", "Ek aur dena!", "Bilkul ghar jaisi!", "Dil khush kar diya!", "Yeh hui na baat!"]),
+    ok:     tr(["Fine, it'll do.", "Good enough.", "Yeah, it's drinkable.", "Alright, job done."], ["Theek hai, chalega.", "Achhi hai, bas.", "Haan, peene layak hai.", "Chalo, kaam ban gaya."]),
+    slow:   tr(["This long?! Hurry up!", "It took forever to make one chai!", "I'm tired of waiting..."], ["Itni der?! Jaldi karo bhaiya!", "Chai banane mein zamana lag gaya!", "Intezaar kar kar ke thak gaya..."]),
+    pricey: tr(["Good chai, but pricey.", "For this price I could buy the shop!", "Make it a little cheaper, no?"], ["Chai achhi hai, par daam zyada hain.", "Itne mein toh dukaan khareed lein!", "Thoda sasta kar do na."]),
+    strengthHigh: tr(["So strong? Is this chai or a potion?", "Go easy on the tea leaves."], ["Itni kadak? Chai hai ya kadha!", "Patti thodi kam daalo."]),
+    strengthLow:  tr(["Not enough tea — it's weak.", "This is just coloured water!"], ["Patti kam hai, feeki hai.", "Yeh toh gunguna paani hai!"]),
+    sweetHigh:    tr(["Way too sweet!", "Go easy on the sugar."], ["Bahut meethi hai, sugar ho jayega!", "Cheeni thodi kam karo."]),
+    sweetLow:     tr(["Needs more sugar!", "Add a little more sweetness."], ["Cheeni kam hai bhaiya!", "Thodi meethi aur daalo."]),
+    milkHigh:     tr(["All milk — where's the chai?", "Use a little less milk."], ["Doodh hi doodh hai, chai kahan?", "Thoda doodh kam karo."]),
+    milkLow:      tr(["Not enough milk — it's basically black tea.", "I wanted it creamier."], ["Doodh kam hai, kali chai ho gayi.", "Thodi malai chahiye thi."]),
+    expensive:    tr(["That pricey?! I'll look elsewhere.", "Whoa, look at that price!", "The last stall was cheaper!"], ["Itna mehenga?! Chal, aage dekhte hain.", "Arre baap re, daam dekho!", "Pichhle wale ne sasti di thi!"]),
+    reneged:      tr(["Waited too long, I'm leaving!", "My bus is here, bye!", "This line never ends..."], ["Bahut der ho gayi, chalta hoon!", "Meri bus aa gayi, bye!", "Line toh khatam hi nahi hoti..."]),
+    queueFull:    tr(["Such a long line? Tomorrow, maybe.", "I don't have that much time!"], ["Itni lambi line? Kal aaunga.", "Mere paas itna time nahi!"]),
+    soldOutLine:  tr(["Out of milk or tea? Stock up for tomorrow!", "Oh no, no chai left?!"], ["Doodh/patti khatam? Kal bhar ke rakhna!", "Arre, chai khatam?! Hayyy!"]),
+  },
+};
+
+/* =====================================================================
+   2. STATE
+   ===================================================================== */
+function newGame(cash, restarts = 0) {
+  const R = CONFIG.recipe;
+  const st = {
+    day: 1,
+    cash,
+    rep: CONFIG.startReputation,
+    lots: newLots(),                                // stock as batches {qty, age in days, cost per unit}
+    stock: {},                                      // totals of the batches above — see refreshStock()
+    recipe: { strength: R.strength.default, sweetness: R.sweetness.default, milk: R.milk.default, spice: 0 },
+    price: CONFIG.price.default,
+    totalCups: 0,
+    restarts,
+    lastReport: null,
+    daySeed: 0, weather: "sunny", forecast: "sunny",   // filled in by rollDay()
+    // v0.3
+    loc: "street",                                  // where you set up today
+    unlockedLocs: ["street"],
+    upgrades: {},                                   // upgradeId -> level (0 = not bought)
+    cupsOwned: ["paper"], cup: "paper",
+    loyalty: {},                                    // locationId -> regular-customer loyalty points
+    // v0.4
+    menu: [],                                       // unlocked menu ids (features + snacks)
+    snackPrice: {},                                 // snackId -> your price (default = the snack's normal price)
+    staff: {},                                      // staffId -> true when hired
+    autoStock: false,                               // manager buys stock each morning
+    event: null, lastEventDay: -99,                 // today's random event: {id, left, choice}
+    bribes: 0, honestFines: 0,
+    buyRate: {},                                    // locationId -> share of passers-by who bought a cup (the manager learns this)
+    // v0.5
+    stats: newStats(),                              // lifetime counters for the Records tab / achievements
+    ach: {},                                        // achievementId -> day it was unlocked
+  };
+  refreshStock(st);
+  rollDay(st);
+  return st;
+}
+let state;                                       // set at the very bottom: load the save, or start a new game
+
+/* =====================================================================
+   3. GAME LOGIC  (pure functions — no DOM in here)
+   ===================================================================== */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const pick = (arr, rng) => arr[Math.floor(rng() * arr.length)];
+const sum = a => a.reduce((x, y) => x + y, 0);
+function gauss(rng) {                                   // standard normal (Box-Muller)
+  let u = 0, v = 0;
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+const normal = (mean, sd, lo, hi, rng) => clamp(mean + sd * gauss(rng), lo, hi);
+function poisson(lambda, rng) {                         // random arrivals per minute
+  const L = Math.exp(-lambda);
+  let k = 0, p = 1;
+  do { k++; p *= rng(); } while (p > L);
+  return k - 1;
+}
+const rint = (lo, hi, rng) => lo + Math.floor(rng() * (hi - lo + 1));
+
+/** Small seedable random generator (so a day's outcome is fixed once the day has started: no save-scumming). */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function pickWeighted(weights, rng) {
+  const entries = Object.entries(weights).filter(([, w]) => w > 0);
+  let r = rng() * sum(entries.map(e => e[1]));
+  for (const [k, w] of entries) if ((r -= w) < 0) return k;
+  return entries[entries.length - 1][0];
+}
+
+/* ---------- seasons & weather ---------- */
+function seasonOf(day) {
+  const len = CONFIG.seasonLengthDays, n = CONFIG.seasons.length;
+  const idx = Math.floor((day - 1) / len) % n;
+  return { ...CONFIG.seasons[idx], idx, dayIn: ((day - 1) % len) + 1, len };
+}
+/** Decide the day's real weather and the (not always right) forecast. Also stores the day's random seed. */
+function rollDay(st, rng0 = Math.random) {
+  st.daySeed = Math.floor(rng0() * 2147483647);
+  const rng = mulberry32(st.daySeed ^ 0x5bd1e995);
+  const season = seasonOf(st.day);
+  st.weather = pickWeighted(season.weights, rng);
+  if (rng() < CONFIG.forecastAccuracy) st.forecast = st.weather;
+  else {
+    const others = { ...season.weights }; delete others[st.weather];
+    st.forecast = pickWeighted(others, rng);
+  }
+  rollEvent(st, rng);                                  // today's random event (may even change the weather)
+}
+
+/* ---------- upgrades -> "perks" the simulation uses ---------- */
+const upgradeLevel = (st, id) => Math.min(st.upgrades[id] || 0, CONFIG.upgrades[id].levels.length - 1);
+const upgradeSpec = (st, id) => CONFIG.upgrades[id].levels[upgradeLevel(st, id)];
+const wagesOf = st => sum(Object.keys(CONFIG.staff).filter(id => st.staff[id]).map(id => CONFIG.staff[id].wage));
+/** Everything your equipment, staff, cups and marketing add up to. */
+function perksOf(st) {
+  const g = id => upgradeSpec(st, id), S = CONFIG.staff;
+  let batch = g("kettle").batch, serviceMin = g("stove").serviceMin;
+  if (st.staff.helper) batch += S.helper.batchBonus;          // helper: serves more cups at once
+  if (st.staff.cook) serviceMin *= S.cook.serviceMult;        // cook: brews faster
+  return {
+    batch, serviceMin,
+    milkLifeBonus: g("cooler").milkLifeBonus,                 // extra days milk survives
+    footfallMult: g("signboard").footfall * g("loudspeaker").footfall * g("listing").footfall,
+    cup: CONFIG.cups[st.cup] || CONFIG.cups.paper,
+  };
+}
+function buyUpgrade(st, id) {
+  const lvl = upgradeLevel(st, id), next = CONFIG.upgrades[id].levels[lvl + 1];
+  if (!next || st.cash < next.cost || st.rep < (next.minRep || 0)) return false;
+  st.cash -= next.cost; st.upgrades[id] = lvl + 1;
+  return true;
+}
+function buyOrPickCup(st, id) {
+  const c = CONFIG.cups[id];
+  if (!c) return false;
+  if (!st.cupsOwned.includes(id)) {
+    if (st.cash < c.unlock) return false;
+    st.cash -= c.unlock; st.cupsOwned.push(id);
+  }
+  st.cup = id;
+  return true;
+}
+function unlockLocation(st, id) {
+  const L = CONFIG.locations[id];
+  if (!L || st.unlockedLocs.includes(id) || st.cash < L.unlock) return false;
+  st.cash -= L.unlock; st.unlockedLocs.push(id); st.loc = id;
+  return true;
+}
+/** Menu: features (masala, cutting) and snacks are one-time unlocks. */
+function unlockMenu(st, id) {
+  const d = CONFIG.menuFeatures[id] || CONFIG.snacks[id];
+  if (!d || st.menu.includes(id) || st.cash < d.unlock) return false;
+  st.cash -= d.unlock; st.menu.push(id);
+  return true;
+}
+const snackPriceOf = (st, id) => st.snackPrice[id] ?? CONFIG.snacks[id].price;
+/** Hire / let go of a staff member. */
+function toggleStaff(st, id) {
+  const S = CONFIG.staff[id];
+  if (!S) return false;
+  if (st.staff[id]) { st.staff[id] = false; if (id === "manager") st.autoStock = false; return true; }
+  if (S.minRep && st.rep < S.minRep) return false;
+  st.staff[id] = true;
+  return true;
+}
+
+/* ---------- random events ---------- */
+const eventNow = st => (st.event && CONFIG.events[st.event.id]) ? { ...st.event, def: CONFIG.events[st.event.id] } : null;
+/** What today's event does to this place: footfall multiplier, how much people will pay, what they want in their chai. */
+function eventFx(st, locId = st.loc) {
+  const ev = eventNow(st), d = ev && ev.def;
+  return {
+    footfall: d && d.footfall ? (d.footfall[locId] ?? d.footfall.all ?? 1) : 1,
+    wtpMult: (d && d.wtpMult) || 1,
+    idealShift: (d && d.idealShift) || {},
+    blogger: !!(d && d.blogger),
+  };
+}
+const priceMult = (st, k) => { const ev = eventNow(st); return (ev && ev.def.priceMult && ev.def.priceMult[k]) || 1; };
+const eventPending = st => { const ev = eventNow(st); return !!(ev && ev.def.choice && ev.choice == null); };
+function resolveEvent(st, i) {
+  const ev = eventNow(st);
+  if (!ev || !ev.def.choice || ev.choice != null) return false;
+  const ch = ev.def.choice[i];
+  if (!ch || st.cash + (ch.cash || 0) < 0) return false;
+  st.cash += ch.cash || 0;
+  st.rep = clamp(st.rep + (ch.rep || 0), 0, 100);
+  if (ch.bribe) st.bribes = (st.bribes || 0) + 1;
+  if (ch.honest) st.honestFines = (st.honestFines || 0) + 1;
+  st.event.choice = i;
+  return true;
+}
+/** Morning: carry on a multi-day event, or maybe start a new one. */
+function rollEvent(st, rng) {
+  const C = CONFIG, prev = st.event;
+  if (prev && C.events[prev.id] && prev.left > 1) {
+    st.event = { id: prev.id, left: prev.left - 1, choice: prev.choice };
+    st.lastEventDay = st.day;
+    return;
+  }
+  st.event = null;
+  let id = null;
+  if (st.day >= C.eventMinDay && st.day - (st.lastEventDay ?? -99) > C.eventCooldownDays && rng() < C.eventChance) {
+    const si = seasonOf(st.day).idx, pool = {};
+    for (const [k, e] of Object.entries(C.events)) {
+      if (!(e.weight > 0)) continue;
+      if (e.seasons && !e.seasons.includes(si)) continue;
+      if (e.needs && !st.unlockedLocs.includes(e.needs)) continue;
+      pool[k] = e.weight;
+    }
+    if (Object.keys(pool).length) id = pickWeighted(pool, rng);
+  }
+  if (!id && st.bribes > 0 && rng() < C.bribeScandalChance * st.bribes) id = "scandal";   // a bribe can come back to bite you
+  if (!id) return;
+  const e = C.events[id];
+  st.event = { id, left: e.days || 1, choice: null };
+  st.lastEventDay = st.day;
+  if (e.instant) {
+    st.cash = Math.max(0, st.cash + (e.instant.cash || 0));
+    st.rep = clamp(st.rep + (e.instant.rep || 0), 0, 100);
+    st.bribes = 0;
+  }
+  if (e.forceWeather) st.weather = e.forceWeather;       // the forecast stays as it was, so this one is a surprise
+}
+
+/* ---------- stock: batches that age and spoil ---------- */
+const ingDef = k => CONFIG.ingredients[k] || CONFIG.snacks[k];
+const stockKeys = () => [...Object.keys(CONFIG.ingredients), ...Object.keys(CONFIG.snacks)];
+const newLots = () => Object.fromEntries(stockKeys().map(k => [k, []]));
+function shelfLife(st, k) {
+  const d = ingDef(k);
+  return d.shelfLifeDays == null ? null : d.shelfLifeDays + (d.coolable ? perksOf(st).milkLifeBonus : 0);
+}
+function refreshStock(st) {
+  st.stock = {};
+  for (const k of Object.keys(st.lots)) st.stock[k] = sum(st.lots[k].map(l => l.qty));
+}
+function addStock(st, k, qty, unitCostRs) {
+  const same = st.lots[k].find(l => l.age === 0 && Math.abs(l.cost - unitCostRs) < 1e-9);
+  if (same) same.qty += qty; else st.lots[k].push({ qty, age: 0, cost: unitCostRs });
+}
+/** Use up stock, oldest batch first. Returns the ₹ value of what was used. */
+function consumeStock(st, used) {
+  let cost = 0;
+  for (const k of Object.keys(used)) {
+    if (!st.lots[k]) continue;
+    let need = used[k];
+    st.lots[k].sort((a, b) => b.age - a.age);
+    for (const l of st.lots[k]) { const take = Math.min(l.qty, need); l.qty -= take; need -= take; cost += take * l.cost; }
+    st.lots[k] = st.lots[k].filter(l => l.qty > 1e-9);
+  }
+  return cost;
+}
+/** Overnight: every batch gets a day older; batches past their shelf life are thrown away. */
+function ageStock(st) {
+  const lost = { qty: {}, cost: 0 };
+  for (const k of Object.keys(st.lots)) {
+    lost.qty[k] = 0;
+    const life = shelfLife(st, k);
+    st.lots[k].forEach(l => l.age++);
+    if (life != null) st.lots[k] = st.lots[k].filter(l => {
+      if (l.age >= life) { lost.qty[k] += l.qty; lost.cost += l.qty * l.cost; return false; }
+      return true;
+    });
+  }
+  return lost;
+}
+/** How much of an item will spoil at the end of today if it isn't used. */
+function expiringTonight(st, k) {
+  const life = shelfLife(st, k);
+  return life == null ? 0 : sum(st.lots[k].filter(l => l.age + 1 >= life).map(l => l.qty));
+}
+
+const unitCost = k => ingDef(k).packPrice / ingDef(k).packSize;     // normal price per unit
+/** Buy packs. Today's event may change the price (e.g. milk price hike). */
+function buy(st, item, packs) {
+  const d = ingDef(item), packCost = d.packPrice * priceMult(st, item), cost = packCost * packs;
+  if (st.cash < cost - 1e-9) return false;
+  st.cash -= cost;
+  addStock(st, item, d.packSize * packs, packCost / d.packSize);
+  refreshStock(st);
+  return true;
+}
+
+/** Ingredients one cup uses, in each ingredient's own unit. */
+function cupUsage(recipe) {
+  const R = CONFIG.recipe;
+  return {
+    tea:   recipe.strength  * R.strength.gramsPerLevel,
+    milk:  recipe.milk / 100 * CONFIG.cupMl,
+    sugar: recipe.sweetness * R.sweetness.gramsPerSpoon,
+    masala: (recipe.spice || 0) * R.spice.gramsPerLevel,
+  };
+}
+/** ₹ cost of ingredients in one cup (at normal prices). */
+function cupCost(recipe) {
+  const u = cupUsage(recipe);
+  return Object.keys(u).reduce((s, k) => s + u[k] * unitCost(k), 0);
+}
+/** How many cups the current stock can make. */
+function stockCups(stock, recipe) {
+  const u = cupUsage(recipe);
+  let min = Infinity;
+  for (const k of Object.keys(u)) if (u[k] > 0) min = Math.min(min, (stock[k] || 0) / u[k]);
+  return Math.floor(min + 1e-9);
+}
+const footfallMultiplier = rep => CONFIG.footfall.base + rep * CONFIG.footfall.perRepPoint;
+/** People expected to walk past today at this place (before anyone decides to buy). */
+function expectedWalkers(st, weatherKey) {
+  const L = CONFIG.locations[st.loc];
+  return L.passersby * footfallMultiplier(st.rep) * CONFIG.weathers[weatherKey].mult * perksOf(st).footfallMult * eventFx(st).footfall;
+}
+/** Rough most-cups-per-day your stove can make (ignoring gaps between customers). */
+function capacityPerDay(st) {
+  const p = perksOf(st);
+  return Math.floor(p.batch * (CONFIG.dayHours * 60) / p.serviceMin);
+}
+/** The manager's shopping: buys stock for the cups he expects today, never spending more than managerBudget of your cash. */
+function managerStock(st) {
+  const C = CONFIG, per = cupUsage(st.recipe);
+  const rate = st.buyRate[st.loc] ?? C.managerDefaultBuyRate;      // he remembers how many passers-by bought here last time
+  const expCups = Math.min(capacityPerDay(st), expectedWalkers(st, st.forecast) * rate * 1.05 + (st.loyalty[st.loc] || 0) * C.regulars.perLoyalty);
+  const L = C.locations[st.loc], fx = eventFx(st), want = {};
+  for (const k of Object.keys(per)) if (per[k] > 0 && !(k === "masala" && !st.menu.includes("masala"))) want[k] = per[k] * expCups;
+  for (const id of Object.keys(C.snacks)) if (st.menu.includes(id)) { const S = C.snacks[id]; 
+    const fair = S.fair * (L.wtpMult || 1) * fx.wtpMult, accept = clamp((1.3 * fair - snackPriceOf(st, id)) / (0.6 * fair), 0, 1);   // chance they'll pay your snack price
+    want[id] = expCups * S.attach * (S.weather[st.forecast] ?? 1) * accept * 1.1; }
+  const packs = {};
+  let total = 0;
+  for (const [k, qty] of Object.entries(want)) {
+    const need = (qty - st.stock[k]) / ingDef(k).packSize;
+    // perishables: round to the nearest pack (a half-wasted pack costs more than a lost sale of one snack); milk: aim a touch low
+    packs[k] = Math.max(0, C.snacks[k] ? Math.round(need - 0.1) : k === "milk" ? Math.round(need * 0.9) : Math.ceil(need - 1e-9));
+    total += packs[k] * ingDef(k).packPrice * priceMult(st, k);
+  }
+  const budget = Math.max(0, st.cash * C.managerBudget), f = total > budget ? budget / total : 1;
+  let spent = 0;
+  for (const [k, n] of Object.entries(packs)) {
+    const take = f < 1 ? Math.max(Math.round(n * f), n > 0 && ["tea", "milk", "sugar"].includes(k) ? 1 : 0) : n;
+    for (let i = 0; i < take; i++) { const c = ingDef(k).packPrice * priceMult(st, k); if (st.cash - c < 0 || spent + c > budget + 1e-9 && i > 0) break; buy(st, k, 1); spent += c; }
+  }
+  return spent;
+}
+
+/** Bankrupt = can't make even the cheapest possible cup and can't afford to restock for one. */
+function isBankrupt(st) {
+  const R = CONFIG.recipe;
+  const cheapest = { strength: R.strength.min, sweetness: R.sweetness.min, milk: R.milk.min, spice: 0 };
+  const u = cupUsage(cheapest);
+  let needed = 0;
+  for (const k of Object.keys(u)) if (u[k] > 0 && st.stock[k] + 1e-9 < u[k]) needed += CONFIG.ingredients[k].packPrice;
+  return st.cash < needed;
+}
+
+/* ---------- customers ---------- */
+/** A random passer-by of a given type, with their own taste, wallet and patience. fx = today's event (changes what people want / pay). */
+function makeCustomer(typeId, loc, recipe, rng, fx) {
+  const T = CONFIG.customerTypes[typeId], R = CONFIG.recipe, W = CONFIG.wtpLimits, sh = (fx && fx.idealShift) || {};
+  const c = { type: typeId };
+  if (T.near) {                                   // regulars: roughly what you already serve
+    c.idealStrength = clamp(recipe.strength + gauss(rng) * T.near.strength, R.strength.min, R.strength.max);
+    c.idealSweet = clamp(recipe.sweetness + gauss(rng) * T.near.sweet, R.sweetness.min, R.sweetness.max);
+    c.idealMilk = clamp(recipe.milk + gauss(rng) * T.near.milk, R.milk.min, R.milk.max);
+    c.idealSpice = clamp((recipe.spice || 0) + gauss(rng) * T.near.spice, R.spice.min, R.spice.max);
+  } else {
+    c.idealStrength = normal(T.strength[0] + (sh.strength || 0), T.strength[1], R.strength.min, R.strength.max, rng);
+    c.idealSweet = normal(T.sweet[0] + (sh.sweet || 0), T.sweet[1], R.sweetness.min, R.sweetness.max, rng);
+    c.idealMilk = normal(T.milk[0] + (sh.milk || 0), T.milk[1], R.milk.min, R.milk.max, rng);
+    c.idealSpice = normal(T.spice[0] + (sh.spice || 0), T.spice[1], R.spice.min, R.spice.max, rng);
+  }
+  c.wtp = normal(T.wtp[0], T.wtp[1], W.min, W.max, rng) * (loc.wtpMult || 1) * ((fx && fx.wtpMult) || 1);
+  c.patience = (T.patience[0] + rng() * (T.patience[1] - T.patience[0])) * (loc.patienceMult || 1);
+  c.satBias = T.satBias;
+  return c;
+}
+
+/**
+ * Taste score 0..1 = 1 - (weighted distance between your recipe and their ideal).
+ * Each knob's distance is scaled to 0..1 by its range. Masala only counts once you've unlocked Masala chai
+ * (it then takes spiceWeight of the score and the other knobs share the rest). Also returns signed misses
+ * (positive = your recipe has MORE than they wanted) for feedback.
+ */
+function tasteBreakdown(recipe, c, spiceOn) {
+  const R = CONFIG.recipe, w = CONFIG.satisfaction.tasteWeights, sw = spiceOn ? CONFIG.spiceWeight : 0;
+  const rawS = recipe.strength - c.idealStrength;
+  const rawW = recipe.sweetness - c.idealSweet;
+  const rawM = recipe.milk - c.idealMilk;
+  const rawSp = spiceOn ? (recipe.spice || 0) - c.idealSpice : 0;
+  const dS = rawS / (R.strength.max - R.strength.min);
+  const dW = rawW / (R.sweetness.max - R.sweetness.min);
+  const dM = rawM / (R.milk.max - R.milk.min);
+  const dSp = rawSp / (R.spice.max - R.spice.min);
+  const taste = clamp(1 - ((1 - sw) * (w.strength * Math.abs(dS) + w.sweet * Math.abs(dW) + w.milk * Math.abs(dM)) + sw * Math.abs(dSp)), 0, 1);
+  return { taste, dS, dW, dM, rawS, rawW, rawM, rawSp };
+}
+/** The most this customer will pay: fairPrice * (0.5 + 0.8 * taste) * cup bonus. */
+function perceivedValue(c, taste, cup) {
+  const S = CONFIG.satisfaction;
+  return c.wtp * (S.valueFloor + S.valueSwing * taste) * cup.wtpMult;
+}
+
+function saleComment(parts, sat, rng) {
+  const T = CONFIG.text;
+  if (sat >= 0.8) return pick(T.happy, rng);
+  if (sat >= 0.6) return pick(T.ok, rng);
+  const worst = [["taste", parts.taste], ["price", parts.priceScore], ["wait", parts.waitScore]]
+    .sort((a, b) => a[1] - b[1])[0][0];
+  if (worst === "wait") return pick(T.slow, rng);
+  if (worst === "price") return pick(T.pricey, rng);
+  const devs = [["s", parts.dS], ["w", parts.dW], ["m", parts.dM]].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0];
+  const high = devs[1] > 0;
+  if (devs[0] === "s") return pick(high ? T.strengthHigh : T.strengthLow, rng);
+  if (devs[0] === "w") return pick(high ? T.sweetHigh : T.sweetLow, rng);
+  return pick(high ? T.milkHigh : T.milkLow, rng);
+}
+const moodFace = sat => sat >= 0.8 ? "😍" : sat >= 0.6 ? "🙂" : sat >= 0.4 ? "😐" : "😠";
+
+/**
+ * Simulate one whole day. Pure: takes the player's choices, returns a result object
+ * (events + per-minute timeline for the animation + totals for the report).
+ *
+ * Plain-language rules:
+ *  - People walking past today ≈ place's passersby * (0.5 + reputation/100) * weather * marketing * today's event,
+ *    spread by the place's rush hours. Regulars (loyalty) come on top of that.
+ *  - Each passer-by is a random customer type (the place decides the mix) with their own taste, fair price and patience.
+ *  - They check taste -> decide the most they'd pay -> buy only if your price is at or below that.
+ *    With Cutting chai unlocked, people who find a full cup too dear may take a half cup instead.
+ *  - The stove makes `batch` cups at once, every `serviceMin` minutes. A long line scares people off,
+ *    and people leave if they wait past their patience.
+ *  - Ingredients are used when a brew starts; if you can't make a cup, you're sold out.
+ *  - After a happy-enough sale, the customer may also buy a snack (chance depends on the snack and the weather).
+ */
+function simulateDay(input, rng = Math.random) {
+  const C = CONFIG, L = C.locations[input.locId], P = input.perks;
+  const fx = input.fx || { footfall: 1, wtpMult: 1, idealShift: {} };
+  const minutes = C.dayHours * 60;
+  const { price, recipe } = input;
+  const menu = input.menu || [], spiceOn = menu.includes("masala"), cuttingOn = menu.includes("cutting");
+  const cutPrice = Math.max(C.price.min, Math.round(price * C.cutting.priceRatio));
+  const snackIds = Object.keys(C.snacks).filter(id => menu.includes(id)), snackPrices = input.snackPrices || {};
+  const perCup = cupUsage(recipe);
+  const stock = { ...input.stock };
+  const hw = L.hourWeights, wSum = sum(hw);
+  const walkers = L.passersby * footfallMultiplier(input.rep) * C.weathers[input.weather].mult * P.footfallMult * fx.footfall;
+  const regularsToday = (input.loyalty || 0) * C.regulars.perLoyalty;
+
+  const events = [];
+  const tl = {
+    queue: new Array(minutes + 1).fill(0), busy: new Array(minutes + 1).fill(false),
+    cups: new Array(minutes + 1).fill(0), revenue: new Array(minutes + 1).fill(0), queueTypes: new Array(minutes + 1).fill(null),
+  };
+  let queue = [], brewing = null, soldOut = false;
+  let cups = 0, halfCups = 0, revenue = 0, snackRevenue = 0, tooExpensive = 0, lostSoldOut = 0, lostQueue = 0, satSum = 0, passed = 0;
+  const snacksSold = {}, usedAll = {};
+  for (const k of Object.keys(stock)) usedAll[k] = 0;
+  const byType = {};
+  const bt = id => (byType[id] ||= { cups: 0, sat: 0, ms: 0, mw: 0, mm: 0, msp: 0, expensive: 0, lost: 0 });
+  const snap = t => {
+    tl.queue[t] = queue.length; tl.busy[t] = !!brewing; tl.cups[t] = cups; tl.revenue[t] = revenue;
+    tl.queueTypes[t] = queue.slice(0, 8).map(c => c.type);
+  };
+
+  function completeBrew(t) {
+    for (const c of brewing.cust) {
+      const waited = brewing.start - c.arrive, em = C.customerTypes[c.type].emoji;
+      const valueHere = c.cutting ? c.value * C.cutting.valueRatio : c.value;
+      const priceScore = clamp(0.5 + (valueHere / c.pay - 1), 0, 1);   // 0.5 if barely worth it, 1 if a bargain
+      const waitScore = clamp(1 - waited / c.patience, 0, 1);
+      const w = C.satisfaction.weights;
+      const sat = clamp(w.taste * c.taste + w.price * priceScore + w.wait * waitScore + c.satBias + P.cup.sat, 0, 1);
+      const parts = { taste: c.taste, priceScore, waitScore, dS: c.dS, dW: c.dW, dM: c.dM };
+      cups++; revenue += c.pay; satSum += sat; if (c.cutting) halfCups++;
+      const b = bt(c.type); b.cups++; b.sat += sat; b.ms += c.rawS; b.mw += c.rawW; b.mm += c.rawM; b.msp += c.rawSp;
+      events.push({ t, type: "sale", text: `${em} ${moodFace(sat)} "${saleComment(parts, sat, rng)}" +₹${c.pay}${c.cutting ? " ✂️" : ""}` });
+      // would they like a snack with that?
+      for (const id of snackIds) {
+        const S = C.snacks[id];
+        if (stock[id] < 1) continue;
+        if (rng() < S.attach * (S.weather[input.weather] ?? 1) * (sat >= 0.6 ? 1 : 0.5)) {
+          const fair = S.fair * (0.7 + 0.6 * rng()) * (L.wtpMult || 1) * fx.wtpMult, sp = snackPrices[id] ?? S.price;
+          if (sp <= fair) {
+            stock[id] -= 1; usedAll[id] += 1; revenue += sp; snackRevenue += sp; snacksSold[id] = (snacksSold[id] || 0) + 1;
+            if (rng() < 0.4) events.push({ t, type: "sale", text: `${em} ${S.emoji} ${S.name} ${tr("too!", "bhi liya!")} +₹${sp}` });
+          }
+        }
+      }
+    }
+    brewing = null;
+  }
+
+  /** A customer walks up: do they like the chai, can they afford it, will they join the line? */
+  function arrive(typeId, t) {
+    const c = makeCustomer(typeId, L, recipe, rng, fx);
+    c.arrive = t;
+    Object.assign(c, tasteBreakdown(recipe, c, spiceOn));
+    c.value = perceivedValue(c, c.taste, P.cup);
+    c.pay = price; c.cutting = false;
+    const em = C.customerTypes[typeId].emoji;
+    if (price > c.value) {
+      if (cuttingOn && cutPrice <= c.value * C.cutting.valueRatio) { c.pay = cutPrice; c.cutting = true; }   // "ek cutting dena!"
+      else {                                                       // too pricey for them
+        tooExpensive++; bt(typeId).expensive++;
+        if (rng() < 0.3) events.push({ t, type: "pass", text: `${em} 🙄 "${pick(C.text.expensive, rng)}"` });
+        return;
+      }
+    }
+    if (soldOut) { lostSoldOut++; return; }                        // wanted chai, none left
+    if ((Math.ceil(queue.length / P.batch) + (brewing ? 1 : 0)) * P.serviceMin > c.patience) {   // line too long
+      lostQueue++; bt(typeId).lost++;
+      if (rng() < 0.5) events.push({ t, type: "lost", text: `${em} 🚶 "${pick(C.text.queueFull, rng)}"` });
+      return;
+    }
+    queue.push(c);
+  }
+
+  events.push({ t: 0, type: "info", text: tr(`🫖 ${L.name}: the chai is brewing — the stall is open!`, `🫖 ${L.name}: chai ubal rahi hai — dukaan khul gayi!`) });
+
+  for (let t = 0; t < minutes; t++) {
+    // 1. finish the brew on the stove
+    if (brewing && brewing.finish <= t) completeBrew(t);
+
+    // 2. new passers-by (and regulars)
+    const share = hw[Math.floor(t / 60)] / wSum / 60;
+    const n = poisson(walkers * share, rng);
+    for (let i = 0; i < n; i++) {
+      passed++;
+      const typeId = pickWeighted(L.mix, rng), T = C.customerTypes[typeId];
+      const group = rint(T.qty[0], T.qty[1], rng);                  // truckers & fans order several cups together
+      for (let q = 0; q < group; q++) arrive(typeId, t);
+    }
+    const nr = poisson(regularsToday * share, rng);
+    for (let i = 0; i < nr; i++) { passed++; arrive("regular", t); }
+
+    // 3. start the next brew if the stove is free
+    if (!brewing && queue.length) {
+      queue = queue.filter(c => {                                  // people who waited too long give up
+        if (t - c.arrive <= c.patience) return true;
+        lostQueue++; bt(c.type).lost++;
+        events.push({ t, type: "lost", text: `${C.customerTypes[c.type].emoji} ⏳ "${pick(C.text.reneged, rng)}"` });
+        return false;
+      });
+      if (queue.length) {
+        const take = [], use = {};
+        for (const k of Object.keys(perCup)) use[k] = 0;
+        for (const c of queue) {                                    // as many as the kettle holds and the stock allows
+          if (take.length >= P.batch) break;
+          const f = c.cutting ? C.cutting.usage : 1;
+          if (!Object.keys(perCup).every(k => (stock[k] || 0) + 1e-9 >= use[k] + perCup[k] * f)) break;
+          take.push(c); for (const k of Object.keys(perCup)) use[k] += perCup[k] * f;
+        }
+        if (!take.length) {                                        // out of stock!
+          soldOut = true; lostSoldOut += queue.length; queue = [];
+          events.push({ t, type: "lost", text: `😢 ${tr("Out of stock!", "Saaman khatam!")} ${pick(C.text.soldOutLine, rng)}` });
+        } else {
+          queue.splice(0, take.length);
+          for (const k of Object.keys(perCup)) { stock[k] -= use[k]; usedAll[k] += use[k]; }
+          brewing = { cust: take, start: t, finish: t + P.serviceMin };
+        }
+      }
+    }
+    snap(t);
+  }
+
+  // closing time: finish the brew on the stove, send the rest home
+  if (brewing) completeBrew(minutes);
+  if (queue.length) {
+    lostQueue += queue.length;
+    events.push({ t: minutes, type: "lost", text: tr(`🔒 Stall closed — ${queue.length} people left in line.`, `🔒 Dukaan band — ${queue.length} log line mein reh gaye.`) });
+    for (const c of queue) bt(c.type).lost++;
+    queue = [];
+  }
+  events.push({ t: minutes, type: "info", text: tr("🌇 Stall closed! That's the day.", "🌇 Dukaan band! Din khatam.") });
+  snap(minutes);
+
+  // ---- totals ----
+  const cupUnits = cups - halfCups * (1 - C.cutting.usage);
+  const cupCostTotal = P.cup.cost * cupUnits;
+  const cogs = Object.keys(usedAll).reduce((s, k) => s + usedAll[k] * unitCost(k), 0) + cupCostTotal;   // applyDay re-prices with real batch costs
+  const rent = L.rent;
+  const profit = revenue - cogs - rent;
+  const avgSat = cups ? satSum / cups : null;
+
+  const Rp = C.reputation;
+  let repDelta;
+  if (!cups) repDelta = -Rp.noSalesPenalty;
+  else {
+    repDelta = (avgSat - Rp.baselineSat) * Rp.perSatPoint * Math.min(1, cups / Rp.fullEffectCups);
+    repDelta -= Math.min(Rp.soldOutPenaltyCap, Rp.soldOutPenalty * lostSoldOut);
+  }
+  const repAfter = clamp(input.rep + repDelta, 0, 100);
+
+  return {
+    minutes, events, timeline: tl,
+    cups, halfCups, cutPrice, revenue, snackRevenue, snacksSold, cogs, cupCostTotal, rent, profit, avgSat, passed,
+    tooExpensive, lostSoldOut, lostQueue, byType,
+    repBefore: input.rep, repDelta: repAfter - input.rep, repAfter,
+    stockAfter: stock, used: usedAll, weather: input.weather, locId: input.locId, spiceOn,
+    feedback: buildFeedback({ cups, byType, tooExpensive, lostSoldOut, lostQueue, spiceOn }),
+  };
+}
+
+/** Turns the day's numbers into customer feedback lines (English or Hinglish), one per customer type that has something to say. */
+function buildFeedback(d) {
+  const lines = [], F = CONFIG.feedbackThreshold;
+  for (const [id, b] of Object.entries(d.byType)) {
+    const T = CONFIG.customerTypes[id], parts = [];
+    if (b.cups >= 4) {
+      const ms = b.ms / b.cups, mw = b.mw / b.cups, mm = b.mm / b.cups, msp = b.msp / b.cups;
+      if (ms > F.strength) parts.push(tr("the chai felt a bit too strong", "chai thodi zyada kadak lagi"));
+      if (ms < -F.strength) parts.push(tr("the chai felt weak — add more tea", "chai feeki lagi — patti badhao"));
+      if (mw > F.sweet) parts.push(tr("it was too sweet", "zyada meethi lagi"));
+      if (mw < -F.sweet) parts.push(tr("it needed more sugar", "cheeni kam padi"));
+      if (mm > F.milk) parts.push(tr("too much milk", "doodh zyada ho gaya"));
+      if (mm < -F.milk) parts.push(tr("not enough milk", "doodh kam laga"));
+      if (d.spiceOn && msp > F.spice) parts.push(tr("the masala was too strong", "masala zyada tez laga"));
+      if (d.spiceOn && msp < -F.spice) parts.push(tr("wanted more masala", "masala aur chahiye tha"));
+    }
+    if (b.expensive >= 4 && b.expensive >= b.cups * 0.5) parts.push(tr(`prices felt too high (${b.expensive} people left)`, `daam zyada lage (${b.expensive} log chale gaye)`));
+    if (parts.length) lines.push(`${T.emoji} ${T.name}: ${parts.join(", ")}.`);
+  }
+  if (!lines.length && d.cups >= 5) lines.push(tr("👌 Everyone liked the taste and the price — your recipe is set!", "👌 Sabko swaad aur daam theek lage — recipe set hai!"));
+  else if (d.cups > 0 && d.cups < 5) lines.push(tr("🤏 Very few cups sold — too small a sample for feedback.", "🤏 Bahut kam cups bike — feedback ke liye sample chhota hai."));
+  if (d.lostSoldOut > 0) lines.push(tr(`😢 ${d.lostSoldOut} customers went away — you had run out of stock.`, `😢 ${d.lostSoldOut} customers wapas gaye — stock khatam ho gaya tha.`));
+  if (d.lostQueue > 0) lines.push(tr(`⏳ ${d.lostQueue} people gave up because of the line or the wait.`, `⏳ ${d.lostQueue} log line ya intezaar se thak kar chale gaye.`));
+  return lines;
+}
+
+function verdictFor(profit) {
+  if (profit >= 400) return tr("Blockbuster day! 🎉", "Dhamaka din! 🎉");
+  if (profit >= 150) return tr("A good day! 👍", "Achha din, bhaiya! 👍");
+  if (profit >= 0)   return tr("Well, you made something. 🙂", "Chalo, kuch toh bacha. 🙂");
+  return tr("A loss today... tomorrow's another day. 😅", "Aaj ghata hua... kal dekhenge. 😅");
+}
+
+const rs0 = n => "₹" + Math.round(n);
+/**
+ * Apply a finished day to the saved state, then move on to the next morning:
+ * use up stock (oldest first) -> overnight spoilage -> wages -> blogger -> loyalty -> day counter + new weather/event.
+ * Spoiled stock counts against the day's profit (you paid for it, then threw it away).
+ */
+function applyDay(st, r) {
+  const ev = eventNow(st);
+  r.day = st.day;
+  r.forecast = st.forecast;
+  r.eventId = ev ? ev.id : null;
+  const stockCost = consumeStock(st, r.used);                     // real ₹ paid for the batches used
+  r.cogs = stockCost + r.cupCostTotal;
+  const lost = ageStock(st);
+  r.spoiled = lost.qty; r.spoiledCost = lost.cost;
+  r.wages = wagesOf(st);
+  r.profit = r.revenue - r.cogs - r.rent - r.spoiledCost - r.wages;
+  if (r.spoiledCost >= 0.5) r.feedback.push(tr(`🗑️ ${rs0(r.spoiledCost)} of stock spoiled.`, `🗑️ ${rs0(r.spoiledCost)} ka saaman kharab ho gaya.`));
+  if (r.forecast !== r.weather) r.feedback.push(tr(`🌦️ The weather office got it wrong again! (forecast ${CONFIG.weathers[r.forecast].emoji}, actual ${CONFIG.weathers[r.weather].emoji})`, `🌦️ Mausam vibhag ne phir galat bola! (forecast ${CONFIG.weathers[r.forecast].emoji}, asli ${CONFIG.weathers[r.weather].emoji})`));
+
+  // the food blogger's verdict
+  r.blogger = null;
+  if (ev && ev.def.blogger && r.cups >= 5) {
+    if (r.avgSat >= 0.78) { r.blogger = "good"; r.repAfter = clamp(r.repAfter + CONFIG.bloggerRep, 0, 100); r.feedback.unshift(tr("📸 The blogger wrote a 5-star review! The reel went viral — Reputation up!", "📸 Blogger ne 5-star review likha! Reel viral ho gayi — Naam badha!")); }
+    else if (r.avgSat < 0.65) { r.blogger = "bad"; r.repAfter = clamp(r.repAfter - CONFIG.bloggerRep, 0, 100); r.feedback.unshift(tr("📸 The blogger posted a roast video... Reputation down. Fix that recipe!", "📸 Blogger ne roast video bana di... Naam ghata. Aage se recipe sudharo!")); }
+    else r.feedback.unshift(tr("📸 The blogger wrote 'okay-ish'. No praise, no pain.", "📸 Blogger ne 'theek-thaak' likha. Na tareef, na burai."));
+    r.repDelta = r.repAfter - r.repBefore;
+  }
+
+  // regulars: a good day at a place earns loyalty there, a bad one loses it
+  const Rg = CONFIG.regulars, locId = r.locId;
+  r.loyaltyBefore = st.loyalty[locId] || 0;
+  if (r.cups >= Rg.minCups) st.loyalty[locId] = clamp(r.loyaltyBefore + (r.avgSat - Rg.baselineSat) * Rg.gainPerSat, 0, Rg.maxLoyalty);
+  r.loyaltyAfter = st.loyalty[locId] || 0;
+  if (r.loyaltyAfter - r.loyaltyBefore >= 0.5) r.feedback.push(tr("🤝 Your regulars are growing — people keep coming back for your chai!", "🤝 Regulars badh rahe hain — log tumhari chai ke liye wapas aa rahe hain!"));
+
+  if (r.passed >= 20) st.buyRate[locId] = (st.buyRate[locId] ?? CONFIG.managerDefaultBuyRate) * 0.6 + (r.cups / r.passed) * 0.4;   // manager's memory
+  st.cash += r.revenue - r.rent - r.cupCostTotal - r.wages;       // stock was paid for when you bought it
+  st.rep = r.repAfter;
+  st.totalCups += r.cups;
+  recordStats(st, r);
+  st.lastReport = r;
+  st.day++;
+  rollDay(st);
+  refreshStock(st);
+}
+
+/** Everything simulateDay needs, gathered from the saved state. */
+function dayInput(st) {
+  return { price: st.price, recipe: { ...st.recipe, spice: st.menu.includes("masala") ? st.recipe.spice : 0 }, stock: { ...st.stock },
+           rep: st.rep, weather: st.weather, locId: st.loc, perks: perksOf(st), loyalty: st.loyalty[st.loc] || 0,
+           fx: eventFx(st), menu: [...st.menu], snackPrices: { ...st.snackPrice } };
+}
+
+/* ---------- records & achievements (v0.5) ---------- */
+const newStats = () => ({ cups: 0, days: 0, rainCups: 0, cuttingSold: 0, snacksSold: 0, goodBlogger: 0,
+                          bestProfit: 0, bestDayCups: 0, peakCash: 0, peakRep: 0 });
+/** The number an achievement counts (see CONFIG.achievements). Some come from the live game state, the rest from st.stats. */
+function statValue(st, key) {
+  switch (key) {
+    case "places":      return st.unlockedLocs.length;
+    case "staffCount":  return Object.values(st.staff).filter(Boolean).length;
+    case "honestFines": return st.honestFines || 0;
+    default:            return st.stats[key] || 0;
+  }
+}
+/** Unlock every achievement whose goal has been reached; returns the ids unlocked just now. */
+function checkAchievements(st) {
+  const fresh = [];
+  for (const a of CONFIG.achievements) if (!st.ach[a.id] && statValue(st, a.key || a.stat) >= a.goal) { st.ach[a.id] = st.day; fresh.push(a.id); }
+  return fresh;
+}
+/** Called once per finished day (before the day counter moves on). */
+function recordStats(st, r) {
+  const S = st.stats;
+  S.cups += r.cups; S.days += 1;
+  if (r.weather === "rain") S.rainCups += r.cups;
+  S.cuttingSold += r.halfCups || 0;
+  S.snacksSold += sum(Object.values(r.snacksSold || {}));
+  if (r.blogger === "good") S.goodBlogger += 1;
+  S.bestProfit = Math.max(S.bestProfit, r.profit);
+  S.bestDayCups = Math.max(S.bestDayCups, r.cups);
+  S.peakCash = Math.max(S.peakCash, st.cash);
+  S.peakRep = Math.max(S.peakRep, st.rep);
+  r.newAch = checkAchievements(st);
+}
+
+/* ---------- save data ---------- */
+function serializeState(st) {
+  const copy = { ...st, stock: undefined, lastReport: st.lastReport ? { ...st.lastReport, timeline: undefined, events: undefined } : null };
+  return JSON.stringify({ v: CONFIG.saveVersion, state: copy });
+}
+/** Returns a valid state, or null if the text is missing/corrupt/too old. Older saves get the new fields filled in. */
+function deserializeState(text) {
+  try {
+    const o = JSON.parse(text);
+    if (!o || !o.state || o.v < CONFIG.minLoadableVersion || o.v > CONFIG.saveVersion) return null;
+    const st = Object.assign(newGame(CONFIG.startCash), o.state);
+    if (![st.cash, st.day, st.rep, st.price].every(Number.isFinite) || st.day < 1) return null;
+    const fresh = newLots();
+    st.lots = { ...fresh, ...st.lots };                                   // older saves have no snack/masala batches
+    for (const k of Object.keys(st.lots)) {
+      if (!ingDef(k)) { delete st.lots[k]; continue; }
+      if (!Array.isArray(st.lots[k]) || st.lots[k].some(l => !(l.qty >= 0) || !Number.isFinite(l.age))) return null;
+      st.lots[k].forEach(l => { if (!Number.isFinite(l.cost)) l.cost = unitCost(k); });   // v0.2 saves had no batch cost
+    }
+    const R = CONFIG.recipe;
+    for (const k of Object.keys(R)) st.recipe[k] = clamp(Number(st.recipe[k]) || R[k].default, R[k].min, R[k].max);
+    st.price = clamp(st.price, CONFIG.price.min, CONFIG.price.max);
+    if (!CONFIG.weathers[st.weather] || !CONFIG.weathers[st.forecast]) rollDay(st);
+    if (!CONFIG.locations[st.loc] || !st.unlockedLocs.includes(st.loc)) st.loc = "street";
+    st.unlockedLocs = st.unlockedLocs.filter(id => CONFIG.locations[id]);
+    if (!st.unlockedLocs.includes("street")) st.unlockedLocs.unshift("street");
+    st.cupsOwned = st.cupsOwned.filter(id => CONFIG.cups[id]);
+    if (!st.cupsOwned.includes("paper")) st.cupsOwned.unshift("paper");
+    if (!st.cupsOwned.includes(st.cup)) st.cup = "paper";
+    st.menu = (Array.isArray(st.menu) ? st.menu : []).filter(id => CONFIG.menuFeatures[id] || CONFIG.snacks[id]);
+    for (const id of Object.keys(st.staff)) if (!CONFIG.staff[id]) delete st.staff[id];
+    if (!st.buyRate || typeof st.buyRate !== "object") st.buyRate = {};
+    if (st.event && !CONFIG.events[st.event.id]) st.event = null;
+    if (!st.menu.includes("masala")) st.recipe.spice = 0;
+    // v0.5: records. Older saves get their lifetime numbers estimated from what they already have.
+    const hadStats = !!(o.state.stats && typeof o.state.stats === "object");
+    st.stats = { ...newStats(), ...(hadStats ? o.state.stats : {}) };
+    if (!hadStats) Object.assign(st.stats, { cups: st.totalCups, days: Math.max(0, st.day - 1), peakCash: Math.max(0, st.cash), peakRep: st.rep });
+    if (!st.ach || typeof st.ach !== "object") st.ach = {};
+    for (const id of Object.keys(st.ach)) if (!CONFIG.achievements.some(a => a.id === id)) delete st.ach[id];
+    if (!hadStats) checkAchievements(st);                                   // quietly award what an old save already earned
+    refreshStock(st);
+    return st;
+  } catch (e) { return null; }
+}
+
+/* ==== LOGIC END (the Node test harness cuts the file here) ==== */
+
+/* =====================================================================
+   4. UI  (rendering + input only)
+   ===================================================================== */
+const app = document.getElementById("app");
+const ui = { screen: "prepare", tab: "today", play: null, notebookOpen: false, confirmReset: false, modal: null, tutStep: 0 };
+
+/** Save/load in the browser (localStorage). Wrapped in try/catch: private windows can block it; the game still works. */
+const store = {
+  save() { try { localStorage.setItem(CONFIG.saveKey, serializeState(state)); } catch (e) {} },
+  load() { try { return deserializeState(localStorage.getItem(CONFIG.saveKey) || ""); } catch (e) { return null; } },
+  clear() { try { localStorage.removeItem(CONFIG.saveKey); } catch (e) {} },
+};
+
+/** Player settings live outside the save file so "Naya khel" doesn't undo them. */
+const settings = Object.assign({ sfx: true, music: true, tutorialDone: false }, (() => {
+  try { return JSON.parse(localStorage.getItem(CONFIG.settingsKey) || "{}") || {}; } catch (e) { return {}; }
+})());
+const saveSettings = () => { try { localStorage.setItem(CONFIG.settingsKey, JSON.stringify(settings)); } catch (e) {} };
+
+/* ---------- sound: everything is synthesised with WebAudio (no audio files) ---------- */
+const audio = (() => {
+  let ctx = null, master = null, mus = null, timer = null, step = 0, rainSrc = null, noiseBuf = null, idx = 4;
+  const last = {};
+  const get = () => {
+    if (!ctx) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+        master = ctx.createGain(); master.gain.value = 0.7; master.connect(ctx.destination);
+        mus = ctx.createGain(); mus.gain.value = 0.45; mus.connect(master);       // music sits quieter than the effects
+      } catch (e) { ctx = null; return null; }
+    }
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    return ctx;
+  };
+  const tone = (f, t, dur, type = "sine", vol = 0.12, f2 = null, out = master) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.05);
+  };
+  const noise = () => {
+    if (!noiseBuf) { noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    return noiseBuf;
+  };
+  const hiss = (t, dur, vol, freq, out = master) => {
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = noise(); f.type = "bandpass"; f.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + dur + 0.05);
+  };
+  const SFX = {
+    tap:     t => tone(660, t, 0.06, "triangle", 0.07),
+    coin:    t => { tone(1320, t, 0.09, "square", 0.05); tone(1976, t + 0.07, 0.25, "square", 0.045); },
+    ching:   t => { tone(1568, t, 0.30, "triangle", 0.09); tone(2349, t + 0.05, 0.35, "sine", 0.05); },
+    whistle: t => tone(880, t, 0.35, "sine", 0.06, 1250),
+    open:    t => [523, 659, 784].forEach((f, i) => tone(f, t + i * 0.09, 0.30, "triangle", 0.08)),
+    good:    t => [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.10, 0.35, "triangle", 0.09)),
+    bad:     t => { tone(330, t, 0.30, "triangle", 0.09, 220); tone(247, t + 0.2, 0.4, "triangle", 0.09, 165); },
+    ach:     t => [659, 784, 988, 1319, 1568].forEach((f, i) => tone(f, t + i * 0.08, 0.40, "square", 0.045)),
+  };
+  const SA = [0, 2, 4, 7, 9];                                   // Bhoop-style pentatonic: Sa Re Ga Pa Dha
+  const note = i => 261.63 * Math.pow(2, (SA[((i % 5) + 5) % 5] + 12 * Math.floor(i / 5)) / 12);
+  const beat = () => {                                           // one 8-count tabla-ish bar + a gentle melody
+    if (!ctx || document.hidden) return;
+    const t = ctx.currentTime + 0.05, s = step++ % 32, b = s % 8;
+    if (b === 0 || b === 5) { tone(150, t, 0.22, "sine", 0.16, 80, mus); hiss(t, 0.06, 0.05, 900, mus); }        // dha
+    if (b === 2 || b === 6) { tone(520, t, 0.07, "triangle", 0.07, null, mus); hiss(t, 0.03, 0.03, 3200, mus); }   // na / tin
+    if (s % 16 === 0) { tone(130.81, t, 3.4, "sine", 0.06, null, mus); tone(196, t, 3.4, "sine", 0.035, null, mus); }  // tanpura-like drone
+    if (s % 2 === 0 && Math.random() < 0.7) {
+      idx = Math.max(-2, Math.min(9, idx + [-1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 6)]));
+      tone(note(idx), t, 0.5, "triangle", 0.05, null, mus);
+    }
+  };
+  return {
+    unlock() { if (get() && settings.music) this.music(true); },
+    sfx(name) {
+      if (!settings.sfx) return;
+      const c = get(); if (!c) return;
+      const now = c.currentTime;
+      if (last[name] && now - last[name] < 0.07) return;
+      last[name] = now;
+      try { SFX[name](now); } catch (e) {}
+    },
+    music(on) {
+      if (!on || !settings.music) { clearInterval(timer); timer = null; return; }
+      if (timer || !get()) return;
+      timer = setInterval(beat, 230);
+    },
+    rain(on) {
+      try {
+        if (rainSrc) { rainSrc.stop(); rainSrc = null; }
+        if (!on || !settings.sfx || !get()) return;
+        const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+        src.buffer = noise(); src.loop = true; f.type = "bandpass"; f.frequency.value = 2200; g.gain.value = 0.05;
+        src.connect(f); f.connect(g); g.connect(master); src.start(); rainSrc = src;
+      } catch (e) {}
+    },
+    refresh() {                                                  // after a settings change
+      this.music(settings.music && !!ctx);
+      this.rain(settings.sfx && !!ui.play && !ui.play.done && ui.play.result.weather === "rain");
+    },
+  };
+})();
+document.addEventListener("visibilitychange", () => { /* AudioContext is paused by the browser when hidden; beat() also skips */ });
+
+/* ---------- art: the street scene is flat-vector SVG, drawn from the weather, place and event ---------- */
+const SKY = { sunny: ["#7ec8f0", "#ffe9b8"], hot: ["#ff9f43", "#ffe3a3"], cloudy: ["#aab7c0", "#e4e9ec"], rain: ["#5f7886", "#a9bac3"], cold: ["#9cc5de", "#e9f4fa"] };
+const GROUND = { street: "#c9a36b", college: "#9cb87a", station: "#a7a7a7", office: "#bdb5a8", dhaba: "#d2b077", stadium: "#93b07c" };
+const cloud = (x, y, k, fill) => `<g class="drift" fill="${fill}"><ellipse cx="${x}" cy="${y}" rx="${26 * k}" ry="${10 * k}"/><ellipse cx="${x - 14 * k}" cy="${y + 3 * k}" rx="${16 * k}" ry="${8 * k}"/><ellipse cx="${x + 15 * k}" cy="${y + 3 * k}" rx="${17 * k}" ry="${8 * k}"/><ellipse cx="${x + 2 * k}" cy="${y - 7 * k}" rx="${14 * k}" ry="${9 * k}"/></g>`;
+function backdropSVG(loc) {
+  const win = (x, y, w = 12, h = 16, f = "#fff0c0") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}" rx="2"/>`;
+  switch (loc) {
+    case "college": return `<rect x="14" y="88" width="104" height="64" fill="#e0b08a"/><path d="M46 88 Q66 46 86 88Z" fill="#c4452d"/><rect x="65" y="40" width="2" height="12" fill="#5b3416"/><path d="M67 40 l14 4 l-14 4Z" fill="#f5b11a"/>
+      ${[24, 44, 64, 84, 100].map(x => `<rect x="${x}" y="104" width="7" height="48" fill="#f1d3b0"/>`).join("")}<rect x="14" y="98" width="104" height="5" fill="#a8662c"/>
+      <rect x="290" y="96" width="96" height="56" fill="#d9a77f"/><rect x="290" y="90" width="96" height="8" fill="#7a4a24"/>${[300, 326, 352].map(x => `<path d="M${x} 130 v-18 a7 7 0 0 1 14 0 v18Z" fill="#fff0c0"/>`).join("")}
+      <rect x="132" y="122" width="3" height="30" fill="#6b4423"/><circle cx="133" cy="116" r="16" fill="#4f8f4a"/>`;
+    case "station": return `<rect x="0" y="62" width="400" height="9" fill="#5a6b78"/><rect x="28" y="71" width="4" height="82" fill="#5a6b78"/><rect x="368" y="71" width="4" height="82" fill="#5a6b78"/>
+      <rect x="150" y="38" width="100" height="18" rx="3" fill="#1d4e89"/><text x="200" y="51" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">PLATFORM 1</text><rect x="198" y="56" width="4" height="8" fill="#5a6b78"/>
+      <rect x="-10" y="92" width="128" height="58" rx="8" fill="#3d6fa5"/><rect x="-10" y="130" width="128" height="6" fill="#f5b11a"/>${[6, 32, 58, 84].map(x => win(x, 100, 20, 18, "#cfe8f7")).join("")}
+      <rect x="282" y="92" width="130" height="58" rx="8" fill="#3d6fa5"/><rect x="282" y="130" width="130" height="6" fill="#f5b11a"/>${[292, 318, 344, 370].map(x => win(x, 100, 20, 18, "#cfe8f7")).join("")}`;
+    case "office": return `<rect x="8" y="40" width="62" height="112" fill="url(#win)" stroke="#4d6a80" stroke-width="2"/><rect x="76" y="72" width="46" height="80" fill="url(#win)" stroke="#4d6a80" stroke-width="2"/>
+      <rect x="284" y="54" width="52" height="98" fill="url(#win)" stroke="#4d6a80" stroke-width="2"/><rect x="342" y="82" width="52" height="70" fill="url(#win)" stroke="#4d6a80" stroke-width="2"/><rect x="29" y="30" width="3" height="10" fill="#4d6a80"/>`;
+    case "dhaba": return `<rect x="6" y="90" width="74" height="50" rx="4" fill="#e0572f"/><rect x="6" y="104" width="74" height="6" fill="#f5b11a"/><rect x="80" y="102" width="34" height="38" rx="5" fill="#2f8f4e"/><rect x="88" y="108" width="18" height="14" fill="#cfe8f7"/>
+      <circle cx="28" cy="142" r="10" fill="#333"/><circle cx="92" cy="142" r="10" fill="#333"/><circle cx="28" cy="142" r="4" fill="#bbb"/><circle cx="92" cy="142" r="4" fill="#bbb"/>
+      <rect x="296" y="58" width="92" height="28" rx="4" fill="#f5b11a"/><text x="342" y="77" font-size="15" font-weight="800" fill="#5b3416" text-anchor="middle">DHABA</text><rect x="302" y="86" width="4" height="40" fill="#6b4423"/><rect x="378" y="86" width="4" height="40" fill="#6b4423"/>
+      <rect x="300" y="128" width="76" height="9" rx="3" fill="#a8662c"/><rect x="304" y="137" width="4" height="14" fill="#6b4423"/><rect x="368" y="137" width="4" height="14" fill="#6b4423"/>`;
+    case "stadium": return `<path d="M-20 152 Q200 36 420 152Z" fill="#8e9aa6"/><path d="M20 152 Q200 76 380 152Z" fill="#6f7c88"/><path d="M40 146 Q200 84 360 146" fill="none" stroke="#f5b11a" stroke-width="5" stroke-dasharray="3 5"/><path d="M70 150 Q200 98 330 150" fill="none" stroke="#12878a" stroke-width="5" stroke-dasharray="3 5"/>
+      ${[28, 372].map(x => `<rect x="${x - 2}" y="44" width="4" height="108" fill="#5a6b78"/><rect x="${x - 14}" y="34" width="28" height="12" rx="2" fill="#fff6c8"/>`).join("")}
+      <text x="92" y="112" font-size="10" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="2">STADIUM</text>`;
+    default: return `<rect x="10" y="82" width="68" height="70" fill="#d9b38c"/><rect x="6" y="74" width="76" height="10" fill="#a8552d"/>${win(20, 94)}${win(52, 94)}<rect x="38" y="124" width="14" height="28" fill="#7a4a24"/>
+      <rect x="84" y="98" width="46" height="54" fill="#e3c9a0"/><rect x="80" y="92" width="54" height="8" fill="#7a4a24"/>${win(96, 108, 14, 16)}
+      <rect x="322" y="70" width="72" height="82" fill="#c98f6b"/><rect x="318" y="62" width="80" height="10" fill="#8a3b22"/>${win(332, 82)}${win(362, 82)}${win(332, 112)}<rect x="360" y="120" width="16" height="32" fill="#5b3416"/>
+      <rect x="290" y="112" width="8" height="40" fill="#6b4423"/><circle cx="294" cy="100" r="24" fill="#4f8f4a"/><circle cx="278" cy="112" r="15" fill="#5aa356"/>`;
+  }
+}
+const BUNTING = { diwali: ["#f5b11a", "#c4452d", "#ff7a00", "#fff0a0"], holi: ["#e91e63", "#2196f3", "#4caf50", "#ffeb3b"], ganesh: ["#ff9800", "#e65100", "#f5b11a"],
+                  ipl: ["#1565c0", "#ffffff", "#f5b11a"], mela: ["#e91e63", "#12878a", "#f5b11a", "#7e57c2"] };
+function eventArt(id) {
+  if (!id) return "";
+  let out = "";
+  const cols = BUNTING[id];
+  if (cols) {
+    out += `<path d="M30 52 Q200 86 370 52" fill="none" stroke="#5b3416" stroke-width="1.5"/>`;
+    for (let i = 0; i < 13; i++) {
+      const x = 44 + i * 25, y = 52 + Math.sin(Math.PI * (x - 30) / 340) * 17 + 1;
+      out += id === "diwali" ? `<circle class="twinkle" style="animation-delay:${(i % 4) * .3}s" cx="${x}" cy="${y + 5}" r="4.5" fill="${cols[i % cols.length]}"/>`
+                             : `<path d="M${x - 7} ${y} h14 l-7 14Z" fill="${cols[i % cols.length]}"/>`;
+    }
+  }
+  if (id === "holi") out += [[60, 170, "#e91e63"], [110, 185, "#2196f3"], [300, 175, "#4caf50"], [350, 190, "#ffeb3b"], [250, 195, "#e91e63"]].map(([x, y, c]) => `<circle cx="${x}" cy="${y}" r="13" fill="${c}" opacity=".55"/>`).join("");
+  if (id === "mela") out += `<g stroke="#7e57c2" stroke-width="2" fill="none"><circle cx="350" cy="92" r="30"/><path d="M350 62v60M320 92h60M329 71l42 42M371 71l-42 42"/></g><path d="M350 122l-8 30h16Z" fill="#7e57c2"/>`;
+  if (id === "ipl") out += `<g><rect x="60" y="90" width="2" height="40" fill="#5b3416"/><path d="M62 90h28l-6 8 6 8H62Z" fill="#1565c0"/><rect x="338" y="90" width="2" height="40" fill="#5b3416"/><path d="M340 90h28l-6 8 6 8h-28Z" fill="#f5b11a"/></g>`;
+  if (id === "strike") out += `<rect x="40" y="118" width="70" height="20" rx="3" fill="#c4452d"/><text x="75" y="133" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">BANDH</text><rect x="74" y="138" width="2" height="22" fill="#5b3416"/>`;
+  if (id === "blogger") out += `<text x="330" y="150" font-size="26">📸</text>`;
+  if (id === "inspector") out += `<text x="330" y="150" font-size="26">🕵️</text>`;
+  return out;
+}
+/** The whole picture. fx ids: "kettle" (wobbles when brewing), "tod" (time-of-day tint, updated while the day plays). */
+function sceneSVG(weather, locId, eventId) {
+  const [c1, c2] = SKY[weather] || SKY.sunny;
+  let s = `<svg class="art" viewBox="0 0 400 220" role="img" aria-label="Chai stall" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+    <pattern id="win" width="12" height="14" patternUnits="userSpaceOnUse"><rect width="12" height="14" fill="#7d9bb2"/><rect x="2" y="2" width="8" height="9" fill="#cfe8f7" opacity=".85"/></pattern></defs>
+    <rect width="400" height="220" fill="url(#sky)"/>`;
+  if (weather === "sunny" || weather === "hot") s += `<circle cx="330" cy="38" r="${weather === "hot" ? 36 : 28}" fill="#fff6b0" opacity=".45"/><circle cx="330" cy="38" r="${weather === "hot" ? 22 : 17}" fill="${weather === "hot" ? "#fff3a0" : "#ffe27a"}"/>`;
+  if (weather === "sunny") s += cloud(90, 36, 0.8, "#fff");
+  if (weather === "cloudy") s += cloud(80, 34, 1, "#f4f6f8") + cloud(250, 28, 1.2, "#e8ecef") + cloud(350, 58, .8, "#f4f6f8");
+  if (weather === "rain") s += cloud(70, 30, 1.2, "#6d7f8a") + cloud(220, 24, 1.4, "#5d6f7a") + cloud(350, 40, 1.1, "#6d7f8a");
+  if (weather === "cold") s += cloud(110, 32, 1, "#f1f7fb");
+  s += backdropSVG(locId);
+  if (weather === "cold") s += `<rect x="0" y="96" width="400" height="60" fill="#fff" opacity=".28"/>`;
+  s += `<rect y="150" width="400" height="70" fill="${GROUND[locId] || GROUND.street}"/><rect y="150" width="400" height="4" fill="#000" opacity=".08"/>`;
+  s += eventArt(eventId);
+  // the stall
+  s += `<g transform="translate(200 0)">
+    <rect x="-58" y="82" width="5" height="70" fill="#6b4423"/><rect x="53" y="82" width="5" height="70" fill="#6b4423"/>
+    <circle cx="26" cy="120" r="9" fill="#c68642"/><path d="M16 117 q10 -14 20 0Z" fill="#f5b11a"/><path d="M19 125 q7 4 14 0" stroke="#3b2412" stroke-width="2" fill="none"/><rect x="14" y="129" width="24" height="16" rx="5" fill="#f08a24"/>
+    <rect x="-52" y="140" width="104" height="32" fill="#a8662c"/><rect x="-56" y="136" width="112" height="7" rx="2" fill="#c98544"/><rect x="-48" y="152" width="96" height="14" rx="3" fill="#8a4f21"/>
+    <text x="0" y="163" font-size="10" font-weight="800" fill="#fff0c0" text-anchor="middle" letter-spacing="2">CHAI</text>
+    <rect x="-34" y="128" width="40" height="10" rx="2" fill="#3b3b3b"/><g class="flame" fill="#ff8a1f"><path d="M-26 128 q3 -9 6 0Z"/><path d="M-14 128 q3 -11 6 0Z" fill="#ffc83a"/><path d="M-4 128 q3 -9 6 0Z"/></g>
+    <g class="kettle" id="kettle"><ellipse cx="-14" cy="116" rx="15" ry="12" fill="#c7ccd1" stroke="#7d868d" stroke-width="1.5"/><path d="M-1 112 q12 -6 14 -14" stroke="#7d868d" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M-28 106 q14 -22 28 0" stroke="#5b3416" stroke-width="2.5" fill="none"/><rect x="-18" y="102" width="8" height="4" rx="2" fill="#7d868d"/></g>
+    <g class="steamg" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"><path d="M13 94 q-4 -6 0 -12"/><path d="M19 94 q-4 -6 0 -12"/><path d="M7 94 q-4 -6 0 -12"/></g>
+    <g fill="#fff" stroke="#8a4f21" stroke-width="1.5"><rect x="28" y="128" width="8" height="8" rx="1.5"/><rect x="40" y="128" width="8" height="8" rx="1.5"/></g>
+    <rect x="-66" y="50" width="132" height="22" rx="5" fill="#5b3416"/><text x="0" y="66" font-size="13" font-weight="800" fill="#ffd27a" text-anchor="middle" letter-spacing="2">GARAM CHAI</text>
+    ${Array.from({ length: 6 }, (_, i) => `<path d="M${-62 + i * 20.67} 74 h20.67 v18 q-10.3 8 -20.67 0Z" fill="${i % 2 ? "#fff4de" : "#c4452d"}"/>`).join("")}
+    <rect x="-62" y="70" width="124" height="5" fill="#8a3b22"/></g>`;
+  if (weather === "rain") {
+    let d = "";
+    for (let r = -1; r < 5; r++) for (let i = 0; i < 20; i++) { const x = (i * 21 + (r & 1) * 9) % 400, y = ((i * 17) % 40) + r * 40; d += `<line x1="${x}" y1="${y}" x2="${x - 4}" y2="${y + 12}"/>`; }
+    s += `<g class="drops" stroke="#e8f4ff" stroke-width="1.4" opacity=".75">${d}</g>`;
+  }
+  s += `<rect id="tod" width="400" height="220" fill="#ff8a3d" opacity="0" pointer-events="none"/></svg>`;
+  return s;
+}
+
+const rs  = n => (n < 0 ? "-" : "") + "₹" + Math.abs(Math.round(n)).toLocaleString("en-IN");
+const rs1 = n => "₹" + n.toFixed(1);
+function fmtTime(t) {
+  const h24 = CONFIG.dayStartHour + Math.floor(t / 60), m = t % 60;
+  const h12 = ((h24 + 11) % 12) + 1;
+  return `${h12}:${String(m).padStart(2, "0")} ${h24 < 12 ? "AM" : "PM"}`;
+}
+const milkLabel = p => p <= 30 ? tr("Light milk", "Halka doodh") : p <= 50 ? tr("Some milk", "Thoda doodh") : p <= 70 ? tr("Creamy", "Malaidaar") : tr("Extra creamy", "Ekdum malai");
+
+function topbar(day = state.day) {
+  return `<div class="topbar">
+    <div class="pill"><small>${tr("Day", "Din")}</small><b>${day}</b></div>
+    <div class="pill"><small>${tr("Cash", "Gallu (cash)")}</small><b class="${state.cash < 0 ? "neg" : ""}">${rs(state.cash)}</b></div>
+    <div class="pill"><small>${tr("Reputation", "Naam (reputation)")}</small><b>${Math.round(state.rep)}/100</b></div>
+    <button class="gear" data-act="settings" aria-label="Settings">⚙️</button>
+  </div>`;
+}
+
+const TABS = [
+  { id: "today",  emoji: "🫖", label: tr("Today", "Aaj") },
+  { id: "places", emoji: "📍", label: tr("Places", "Jagah") },
+  { id: "menu",   emoji: "🍽️", label: "Menu" },
+  { id: "shop",   emoji: "🛠️", label: tr("Shop", "Dukaan") },
+  { id: "records", emoji: "🏆", label: "Records" },
+];
+/** Wraps a prepare-screen tab with the top bar and the bottom navigation. */
+function shell(inner) {
+  const nav = TABS.map(t => `<button class="${ui.tab === t.id ? "on" : ""}" data-act="tab" data-tab="${t.id}"><b>${t.emoji}</b>${t.label}</button>`).join("");
+  app.innerHTML = `${topbar()}<div class="content">${inner}</div><div class="nav"><div class="in">${nav}</div></div>`;
+}
+
+function stepper(label, big, small, act, key) {
+  return `<div class="stepper">
+    <button class="btn ghost" data-act="${act}" data-key="${key}" data-dir="-1" aria-label="less ${label}">−</button>
+    <div class="val"><small>${label}</small><b>${big}</b><small>${small}</small></div>
+    <button class="btn ghost" data-act="${act}" data-key="${key}" data-dir="1" aria-label="more ${label}">+</button>
+  </div>`;
+}
+const mixText = L => {
+  const tot = sum(Object.values(L.mix));
+  return Object.entries(L.mix).sort((a, b) => b[1] - a[1]).slice(0, 4)
+    .map(([id, w]) => `<span class="tag">${CONFIG.customerTypes[id].emoji} ${CONFIG.customerTypes[id].name} ${Math.round(w / tot * 100)}%</span>`).join("");
+};
+
+function renderPrepare() {
+  ui.screen = "prepare";
+  if (ui.tab === "places") return renderPlaces();
+  if (ui.tab === "menu") return renderMenu();
+  if (ui.tab === "shop") return renderShop();
+  if (ui.tab === "records") return renderRecords();
+  renderToday();
+}
+
+/* ---------- event card (shown at the top of the Today tab) ---------- */
+function eventTags(E, s) {
+  const C = CONFIG, tags = [], here = C.locations[s.loc];
+  if (E.footfall) {
+    const m = E.footfall[s.loc] ?? E.footfall.all ?? 1;
+    if (m !== 1) tags.push(`${m > 1 ? "📈" : "📉"} ${here.emoji} ${here.name.split(" (")[0]}: ${tr("crowd", "log")} ×${m}`);
+    for (const [id, m2] of Object.entries(E.footfall))
+      if (id !== "all" && id !== s.loc && C.locations[id] && s.unlockedLocs.includes(id)) tags.push(`${C.locations[id].emoji} ×${m2}`);
+  }
+  if (E.wtpMult) tags.push(tr(`💰 people will pay ${Math.round((E.wtpMult - 1) * 100)}% more`, `💰 log ${Math.round((E.wtpMult - 1) * 100)}% zyada dene ko raazi`));
+  if (E.priceMult) for (const [k, m] of Object.entries(E.priceMult)) tags.push(`📈 ${ingDef(k).name} ×${m}`);
+  if (E.idealShift && (E.idealShift.sweet || E.idealShift.milk)) tags.push(tr("🍬 people want it sweeter / creamier today", "🍬 log aaj meetha / malaidaar chahte hain"));
+  if (E.blogger) tags.push(`⭐ ${tr("Reputation", "Naam")} ±${C.bloggerRep}`);
+  if (E.instant) tags.push(`💸 ${rs(E.instant.cash)} · ⭐ ${E.instant.rep}`);
+  if (E.forceWeather) tags.push(`${C.weathers[E.forceWeather].emoji} ${C.weathers[E.forceWeather].name}`);
+  return tags.map(t => `<span class="tag">${t}</span>`).join("");
+}
+function eventCard(s) {
+  const ev = eventNow(s);
+  if (!ev) return "";
+  const E = ev.def;
+  let body = "";
+  if (E.choice) {
+    body = ev.choice == null
+      ? `<div class="choices">${E.choice.map((c, i) => `<button class="btn" data-act="evchoice" data-i="${i}" ${s.cash + (c.cash || 0) < 0 ? "disabled" : ""}>${c.label}</button>`).join("")}</div>`
+      : `<div class="hint" style="text-align:left">${E.choice[ev.choice].text}</div>`;
+  }
+  return `<div class="card event"><div class="row-top"><div class="big-emoji">${E.emoji}</div>
+    <div><b>${E.name}</b>${ev.left > 1 ? ` <small>(${tr(`${ev.left - 1} more days`, `aur ${ev.left - 1} din`)})</small>` : ""}<br><small>${E.text}</small>
+    <div class="tags">${eventTags(E, s)}</div></div></div>${body}</div>`;
+}
+
+/* ---------- TAB: today ---------- */
+const spiceLabels = tr(["No masala", "Mild masala", "Medium masala", "Strong masala"], ["Bina masala", "Halka masala", "Theek masala", "Tez masala"]);
+function renderToday() {
+  const s = state, C = CONFIG, L = C.locations[s.loc], P = perksOf(s);
+  const cost = cupCost(s.recipe) + P.cup.cost, margin = s.price - cost, cover = stockCups(s.stock, s.recipe);
+  const headline = C.headlines[(s.day - 1) % C.headlines.length];
+  const masalaOn = s.menu.includes("masala"), manager = s.staff.manager;
+  const pending = eventPending(s), canOpen = (cover >= 1 || (manager && s.autoStock)) && !pending;
+
+  const stockRows = Object.entries(C.ingredients).filter(([, ing]) => !ing.needs || s.menu.includes(ing.needs)).map(([k, ing]) => {
+    const u = cupUsage(s.recipe)[k];
+    const cups = u > 0 ? Math.floor(s.stock[k] / u + 1e-9) : "∞";
+    const life = shelfLife(s, k), exp = expiringTonight(s, k), mult = priceMult(s, k), pc = ing.packPrice * mult;
+    const lifeTxt = life == null ? tr("never spoils", "kabhi kharab nahi") : life === 1 ? tr("lasts only 1 day", "sirf 1 din chalta hai") : tr(`lasts ${life} days`, `${life} din chalta hai`);
+    const expTxt = exp > 0 ? `<br><span class="bad">${tr(`⚠️ ${Math.round(exp)} ${ing.unit} will spoil tonight!`, `⚠️ ${Math.round(exp)} ${ing.unit} aaj raat kharab ho jayega!`)}</span>` : "";
+    const hike = mult > 1 ? ` <span class="bad">${tr("📈 pricey!", "📈 mehenga!")}</span>` : "";
+    return `<div class="row">
+      <div class="info"><b>${ing.emoji} ${ing.name}</b>${hike}<br>
+        <small>${tr("Have", "Hai")}: ${Math.round(s.stock[k])} ${ing.unit}${u > 0 ? ` (~${cups} cups)` : ""} · pack ${ing.packSize} ${ing.unit}<br>${lifeTxt}</small>${expTxt}</div>
+      <div class="btns">
+        <button class="btn" data-act="buy" data-item="${k}" data-packs="1" ${s.cash < pc ? "disabled" : ""}>+1 · ${rs(pc)}</button>
+        <button class="btn" data-act="buy" data-item="${k}" data-packs="5" ${s.cash < pc * 5 ? "disabled" : ""}>+5 · ${rs(pc * 5)}</button>
+      </div></div>`;
+  }).join("");
+  const snackExpiring = Object.keys(C.snacks).some(id => s.menu.includes(id) && expiringTonight(s, id) > 0);
+
+  const season = seasonOf(s.day), fw = C.weathers[s.forecast];
+  const walkers = Math.round(expectedWalkers(s, s.forecast));
+  const yest = s.lastReport ? tr(`Yesterday: ${s.lastReport.cups} cups sold.`, `Kal ${s.lastReport.cups} cups bike.`) : "";
+  const cap = capacityPerDay(s), wages = wagesOf(s);
+  const chips = s.unlockedLocs.map(id => `<button class="btn ${id === s.loc ? "sel" : "ghost"}" data-act="loc" data-id="${id}">${C.locations[id].emoji} ${C.locations[id].name.split(" (")[0]}</button>`).join("");
+  const loy = s.loyalty[s.loc] || 0;
+  const S = C.satisfaction, Rp = C.reputation;
+  const cutPrice = Math.max(C.price.min, Math.round(s.price * C.cutting.priceRatio));
+
+  shell(`
+    <div class="gazette"><div class="masthead">📰 THE CHAI GAZETTE · ${tr("Day", "Din")} ${s.day}</div><div class="headline">"${headline}"</div></div>
+
+    <div class="scene mini">${sceneSVG(s.forecast, s.loc, eventNow(s) ? eventNow(s).id : null)}<div class="cap">${L.emoji} ${L.name.split(" (")[0]} · ${fw.emoji} ${fw.name} (forecast)</div></div>
+
+    ${eventCard(s)}
+
+    <div class="card forecast">
+      <div class="wx-big">${fw.emoji}</div>
+      <div><b>${tr("Today's weather (forecast)", "Aaj ka mausam (forecast)")}: ${fw.name}</b><br>
+        <small>${season.emoji} ${season.name} · ${tr("day", "din")} ${season.dayIn}/${season.len}</small><br>
+        <small>${fw.tip}</small><br>
+        <small>${tr(`Expect ~${walkers} people to walk past ${L.emoji} ${L.name.split(" (")[0]}. ${yest} <i>(The forecast is only right ${Math.round(C.forecastAccuracy * 100)}% of the time!)</i>`, `Andaaza: ~${walkers} log guzrenge ${L.emoji} ${L.name.split(" (")[0]} se. ${yest} <i>(Forecast ${Math.round(C.forecastAccuracy * 100)}% hi sahi hota hai!)</i>`)}</small></div>
+    </div>
+
+    <div class="card"><h3>${tr("📍 Where to set up today?", "📍 Aaj kahan baithoge?")}</h3>
+      <div class="chips">${chips}</div>
+      <div class="tags">${mixText(L)}</div>
+      <small>${L.blurb}${loy > 0.4 ? ` · 🤝 Regulars: ${loy.toFixed(1)}/${C.regulars.maxLoyalty}` : ""}</small>
+    </div>
+
+    ${manager ? `<div class="card"><h3>🧾 Munim ji</h3>
+      <small>${tr(`He handles the accounts. He buys stock based on how busy he expects the day to be (up to ${Math.round(C.managerBudget * 100)}% of your cash).`, `Hisaab-kitaab unke haath mein. Woh kal ki bheed ke hisaab se saaman layenge (aapke cash ka ${Math.round(C.managerBudget * 100)}% tak).`)}</small>
+      <div class="switch"><button class="btn ${s.autoStock ? "sel" : "ghost"}" data-act="auto">${s.autoStock ? tr("✓ Auto-stock every morning", "✓ Roz subah auto-stock") : tr("Auto-stock off", "Auto-stock band")}</button>
+      <button class="btn" data-act="manager">${tr("Order stock now", "Abhi saaman mangao")}</button></div></div>` : ""}
+
+    <div class="card"><h3>${tr("🛒 Buy stock", "🛒 Saaman kharido (Stock)")}</h3>${stockRows}
+      ${snackExpiring ? `<div class="hint"><span class="bad">${tr("⚠️ Some of your menu stock will spoil tonight — check the Menu tab.", "⚠️ Menu ka kuch saaman aaj raat kharab ho jayega — Menu tab dekho.")}</span></div>` : ""}</div>
+
+    <div class="card"><h3>🫖 Recipe</h3>
+      ${stepper(tr("Tea strength", "Chai ki taakat"), `${s.recipe.strength}/5 · ${C.strengthLabels[s.recipe.strength - 1]}`, tr(`${cupUsage(s.recipe).tea} g tea per cup`, `${cupUsage(s.recipe).tea} g patti per cup`), "recipe", "strength")}
+      ${stepper(tr("Sweetness", "Meetha"), tr(`${s.recipe.sweetness} spoons · ${C.sweetnessLabels[s.recipe.sweetness]}`, `${s.recipe.sweetness} chamach · ${C.sweetnessLabels[s.recipe.sweetness]}`), tr(`${cupUsage(s.recipe).sugar} g sugar per cup`, `${cupUsage(s.recipe).sugar} g cheeni per cup`), "recipe", "sweetness")}
+      ${stepper(tr("Milk", "Doodh"), `${s.recipe.milk}% · ${milkLabel(s.recipe.milk)}`, tr(`${cupUsage(s.recipe).milk} ml milk per cup`, `${cupUsage(s.recipe).milk} ml doodh per cup`), "recipe", "milk")}
+      ${masalaOn ? stepper(tr("Masala (ginger-cardamom)", "Masala (adrak-elaichi)"), `${s.recipe.spice}/3 · ${spiceLabels[s.recipe.spice]}`, `${cupUsage(s.recipe).masala} g masala per cup`, "recipe", "spice") : ""}
+    </div>
+
+    <div class="card"><h3>${tr("🏷️ Price per cup", "🏷️ Daam (Price per cup)")}</h3>
+      <div class="stepper">
+        <button class="btn ghost" data-act="price" data-dir="-1" aria-label="lower price">−</button>
+        <div class="val"><b style="font-size:1.6rem">${rs(s.price)}</b>${s.menu.includes("cutting") ? `<small>${tr("✂️ Cutting (half cup)", "✂️ Cutting (aadha cup)")}: ${rs(cutPrice)}</small>` : ""}</div>
+        <button class="btn ghost" data-act="price" data-dir="1" aria-label="raise price">+</button>
+      </div>
+    </div>
+
+    <div class="card"><h3>${tr("📒 Today's numbers", "📒 Hisaab (today's numbers)")}</h3>
+      <div class="summary">
+        Cost per cup (ingredients + ${P.cup.name.toLowerCase()}): <b>${rs1(cost)}</b><br>
+        Margin per cup: <span class="${margin >= 0 ? "good" : "bad"}">${margin >= 0 ? "+" : ""}${rs1(margin)}</span><br>
+        Stock lasts: <b>${cover}</b> cups at this recipe<br>
+        ${tr("Stove", "Chulha")} capacity: ~<b>${cap}</b> cups/${tr("day", "din")} (${P.batch} per ${+P.serviceMin.toFixed(1)} min)<br>
+        Rent at ${L.name.split(" (")[0]}: <b>${rs(L.rent)}</b>${wages ? `<br>Staff wages: <b>${rs(wages)}</b>` : ""}
+      </div>
+    </div>
+
+    <button class="btn big" data-act="open" ${canOpen ? "" : "disabled"}>${tr("☕ Open the stall!", "☕ Dukaan kholo!")}</button>
+    ${pending ? `<div class="hint">${tr("Decide on the event above first!", "Pehle upar wale event ka faisla karo!")}</div>` : cover < 1 && !canOpen ? `<div class="hint">${tr("Chai without ingredients? Buy tea, milk and sugar first!", "Bina saaman ke chai? Pehle patti, doodh aur cheeni kharido!")}</div>` : ""}
+
+    <div class="card"><details id="notebook" ${ui.notebookOpen ? "open" : ""}>
+      <summary>📖 Chaiwala's notebook — how the math works</summary>
+      <ul>
+        <li>People walking past ≈ <b>place's passersby × (0.5 + reputation/100) × weather × marketing × today's event</b>, busiest at that place's rush hours. Regulars come on top.</li>
+        <li>Weather multipliers: ${Object.values(C.weathers).map(w => `${w.emoji} ×${w.mult}`).join(" · ")}. Seasons change every ${C.seasonLengthDays} days. The forecast is right ${Math.round(C.forecastAccuracy * 100)}% of the time.</li>
+        <li>Each person is a customer type (the place decides the mix) with their own ideal strength, sweetness, milk${masalaOn ? ", masala" : ""} — and a "fair price" (students ~₹7, office ~₹13, tourists ~₹16...).</li>
+        <li><b>Taste score</b> = 100% minus how far your recipe is from their ideal (strength ${S.tasteWeights.strength * 100}%, sweetness ${S.tasteWeights.sweet * 100}%, milk ${S.tasteWeights.milk * 100}% of the penalty${masalaOn ? `; masala takes ${C.spiceWeight * 100}% and the rest share ${100 - C.spiceWeight * 100}%` : ""}).</li>
+        <li>They pay at most <b>fair price × (${S.valueFloor} + ${S.valueSwing} × taste) × cup bonus</b>. Price above that → they walk on${s.menu.includes("cutting") ? ` — or take a ✂️ cutting (${C.cutting.priceRatio * 100}% of your price) if they'd pay ${C.cutting.valueRatio * 100}% of their value for half a cup` : ""}.</li>
+        <li><b>Satisfaction</b> = ${S.weights.taste * 100}% taste + ${S.weights.price * 100}% price fairness + ${S.weights.wait * 100}% short waiting, plus the cup's bonus. Grumpy uncles score lower, regulars higher.</li>
+        <li>Reputation change = <b>(avg satisfaction − ${Rp.baselineSat}) × ${Rp.perSatPoint}</b>, minus ${Rp.soldOutPenalty} per customer turned away because you ran out (max ${Rp.soldOutPenaltyCap}).</li>
+        <li>The stove makes <b>kettle-size</b> cups together every <b>stove-time</b> minutes. Customers leave if they wait longer than their patience (station people: 30% less!).</li>
+        <li><b>Loyalty:</b> after a 10+ cup day, loyalty at that place changes by (avg satisfaction − ${C.regulars.baselineSat}) × ${C.regulars.gainPerSat}. Each point brings ${C.regulars.perLoyalty} regulars a day.</li>
+        <li><b>Snacks:</b> after a happy-enough sale, each snack you stock has a chance (its attach rate × the weather's effect) of being bought too.</li>
+        <li><b>Events</b> start on about ${Math.round(C.eventChance * 100)}% of mornings. Bribing the inspector is cheaper now, but each bribe adds a ${C.bribeScandalChance * 100}%/day chance of a scandal.</li>
+        <li>Spoilage: ${Object.values(C.ingredients).map(i => `${i.name} ${i.shelfLifeDays == null ? "never" : i.shelfLifeDays + " day" + (i.shelfLifeDays > 1 ? "s" : "")}`).join(" · ")}. Oldest stock is used first. Spoiled stock is lost money.</li>
+        <li>Profit = revenue − ingredients used − cups − rent − wages − spoiled stock.</li>
+      </ul>
+    </details></div>
+
+    <div class="hint">${tr("✅ Progress saves automatically", "✅ Progress auto-save hoti hai")} · v0.5.1<br>
+      <button class="btn ghost" data-act="reset" style="margin-top:8px">${ui.confirmReset ? tr("Sure? Everything will be erased — tap again", "Pakka? Sab mit jayega — dobara dabao") : tr("🗑️ Start a new game", "🗑️ Naya khel shuru karo")}</button></div>`);
+}
+
+/* ---------- TAB: places ---------- */
+function renderPlaces() {
+  const s = state, C = CONFIG;
+  const cards = Object.entries(C.locations).map(([id, L]) => {
+    const owned = s.unlockedLocs.includes(id), here = s.loc === id, loy = s.loyalty[id] || 0;
+    const btn = owned
+      ? (here ? `<button class="btn sel" disabled>${tr("📍 You're here", "📍 Yahin ho")}</button>` : `<button class="btn" data-act="loc" data-id="${id}">${tr("Go here", "Yahan jao")}</button>`)
+      : `<button class="btn" data-act="unlockLoc" data-id="${id}" ${s.cash < L.unlock ? "disabled" : ""}>${tr("Unlock", "Kholo")} · ${rs(L.unlock)}</button>`;
+    return `<div class="card loc"><h3><span>${L.emoji} ${L.name}</span></h3>
+      <div class="tags"><span class="tag">${tr("Rent", "Rent")} ${rs(L.rent)}/${tr("day", "din")}</span><span class="tag">~${L.passersby} ${tr("people", "log")}/${tr("day", "din")}</span>
+        ${L.wtpMult > 1 ? `<span class="tag">${tr("💰 Wealthy crowd", "💰 Amir log")}</span>` : L.wtpMult < 1 ? `<span class="tag">💸 Tight budget</span>` : ""}
+        ${L.patienceMult && L.patienceMult < 1 ? `<span class="tag">${tr("⏱️ In a hurry", "⏱️ Jaldbaaz")}</span>` : L.patienceMult > 1 ? `<span class="tag">${tr("🛋️ Relaxed", "🛋️ Aaram se")}</span>` : ""}
+        ${loy > 0.4 ? `<span class="tag">🤝 ${loy.toFixed(1)} regulars</span>` : ""}</div>
+      <div class="tags">${mixText(L)}</div>
+      <div class="split"><small>${L.blurb}</small><div>${btn}</div></div></div>`;
+  }).join("");
+  shell(`<div class="hint" style="margin-top:12px">${tr("Open new spots — every place has different crowds, rush hours and rent.", "Naye thikaane kholo — har jagah ke log, rush hours aur kiraya alag hain.")}</div>${cards}`);
+}
+
+/* ---------- TAB: menu (v0.4) ---------- */
+function renderMenu() {
+  const s = state, C = CONFIG, fw = C.weathers[s.forecast];
+  const cutPrice = Math.max(C.price.min, Math.round(s.price * C.cutting.priceRatio));
+  const feats = Object.entries(C.menuFeatures).map(([id, f]) => {
+    const own = s.menu.includes(id);
+    const extra = own && id === "cutting" ? `<br><small>${tr(`A half cup now costs ${rs(cutPrice)} (${Math.round(C.cutting.priceRatio * 100)}% of ${rs(s.price)}).`, `Abhi aadha cup ${rs(cutPrice)} ka (${Math.round(C.cutting.priceRatio * 100)}% of ${rs(s.price)}).`)}</small>` : own && id === "masala" ? `<br><small>${tr("Your recipe now has a Masala slider (Today tab).", "Recipe mein ab Masala ka slider hai (Aaj tab).")}</small>` : "";
+    return `<div class="card"><div class="split"><div><h3>${f.emoji} ${f.name}</h3><small>${f.blurb}</small>${extra}</div>
+      <div>${own ? `<button class="btn sel" disabled>${tr("✅ Unlocked", "✅ Chalu")}</button>` : `<button class="btn" data-act="menuUnlock" data-id="${id}" ${s.cash < f.unlock ? "disabled" : ""}>${tr("Unlock", "Kholo")} · ${rs(f.unlock)}</button>`}</div></div></div>`;
+  }).join("");
+  const snacks = Object.entries(C.snacks).map(([id, sn]) => {
+    const own = s.menu.includes(id);
+    if (!own) return `<div class="card"><div class="split"><div><h3>${sn.emoji} ${sn.name}</h3><small>₹${sn.price} · ${tr("cost", "lagat")} ₹${(sn.packPrice / sn.packSize).toFixed(1)} · ${sn.shelfLifeDays === 1 ? tr("lasts only 1 day", "sirf 1 din chalta hai") : tr(`lasts ${sn.shelfLifeDays} days`, `${sn.shelfLifeDays} din chalta hai`)}</small></div>
+      <div><button class="btn" data-act="menuUnlock" data-id="${id}" ${s.cash < sn.unlock ? "disabled" : ""}>${tr("Unlock", "Kholo")} · ${rs(sn.unlock)}</button></div></div></div>`;
+    const have = Math.round(s.stock[id] || 0), exp = expiringTonight(s, id), wm = sn.weather[s.forecast] ?? 1;
+    const price = snackPriceOf(s, id), unit = sn.packPrice / sn.packSize;
+    const hot = wm >= 1.3 ? `<span class="good">${tr(`🔥 Sells more in ${fw.emoji} (×${wm})`, `🔥 ${fw.emoji} mein zyada bikega (×${wm})`)}</span>` : wm <= 0.7 ? `<span class="bad">${tr(`❄️ Sells less in ${fw.emoji} (×${wm})`, `❄️ ${fw.emoji} mein kam bikega (×${wm})`)}</span>` : `<small>${tr(`Sells normally in ${fw.emoji}`, `${fw.emoji} mein normal bikega`)}</small>`;
+    return `<div class="card"><h3>${sn.emoji} ${sn.name}</h3>
+      <small>${tr("In stock", "Hai")}: <b>${have}</b> ${sn.unit} · ${tr("cost", "lagat")} ${rs1(unit)} · ${tr("profit", "munafa")} ${rs1(price - unit)}/${sn.unit.replace(/s$/, "")} · ${sn.shelfLifeDays === 1 ? tr("lasts only 1 day", "sirf 1 din chalta hai") : tr(`lasts ${sn.shelfLifeDays} days`, `${sn.shelfLifeDays} din chalta hai`)}</small>
+      ${exp > 0 ? `<br><span class="bad">${tr(`⚠️ ${Math.round(exp)} ${sn.unit} will spoil tonight!`, `⚠️ ${Math.round(exp)} ${sn.unit} aaj raat kharab ho jayenge!`)}</span>` : ""}<br>${hot}
+      <div class="split" style="margin-top:6px"><div class="mini-stepper">
+        <button class="btn ghost" data-act="snackprice" data-id="${id}" data-dir="-1">−</button><b>${rs(price)}</b><button class="btn ghost" data-act="snackprice" data-id="${id}" data-dir="1">+</button></div>
+        <div class="btns" style="display:flex;gap:6px">
+          <button class="btn" data-act="buy" data-item="${id}" data-packs="1" ${s.cash < sn.packPrice ? "disabled" : ""}>+${sn.packSize} · ${rs(sn.packPrice)}</button>
+          <button class="btn" data-act="buy" data-item="${id}" data-packs="3" ${s.cash < sn.packPrice * 3 ? "disabled" : ""}>+${sn.packSize * 3} · ${rs(sn.packPrice * 3)}</button></div></div></div>`;
+  }).join("");
+  shell(`<div class="hint" style="margin-top:12px">${tr("Sell something with the chai! Buy your snack stock here.", "Chai ke saath kuch aur bhi becho! Snacks ka stock yahin se kharido.")}</div>
+    <h3 style="margin:14px 2px 0">${tr("✨ New kinds of chai", "✨ Chai ke naye roop")}</h3>${feats}
+    <h3 style="margin:14px 2px 0">🍽️ Snacks</h3>${snacks}`);
+}
+
+/* ---------- TAB: shop (upgrades + staff) ---------- */
+function renderShop() {
+  const s = state, C = CONFIG, P = perksOf(s);
+  const lvlBar = (n, max) => `<div class="lvl">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</div>`;
+  const upCard = id => {
+    const U = C.upgrades[id], lvl = upgradeLevel(s, id), next = U.levels[lvl + 1];
+    const cur = U.levels[lvl].desc ? `${tr("Now", "Abhi")}: ${U.levels[lvl].desc}` : `${tr("Now", "Abhi")}: —`;
+    const need = next && next.minRep && s.rep < next.minRep ? tr(`Needs Reputation ${next.minRep}`, `Naam ${next.minRep} chahiye`) : "";
+    const btn = next ? `<button class="btn" data-act="upgrade" data-id="${id}" ${s.cash < next.cost || need ? "disabled" : ""}>${need || `${tr("Buy", "Kharido")} · ${rs(next.cost)}`}</button>` : `<button class="btn sel" disabled>${tr("✅ Maxed", "✅ Poora")}</button>`;
+    return `<div class="card"><div class="split"><div><h3>${U.emoji} ${U.name}</h3>${lvlBar(lvl, U.levels.length - 1)}
+      <small>${next ? `${tr("Next", "Agla")}: ${next.desc}` : cur}</small></div><div>${btn}</div></div></div>`;
+  };
+  const group = g => Object.keys(C.upgrades).filter(id => C.upgrades[id].group === g).map(upCard).join("");
+  const cupRows = Object.entries(C.cups).map(([id, c]) => {
+    const owned = s.cupsOwned.includes(id);
+    const btn = owned ? (s.cup === id ? `<button class="btn sel" disabled>${tr("✓ In use", "✓ Use mein")}</button>` : `<button class="btn" data-act="cup" data-id="${id}">${tr("Use", "Use karo")}</button>`)
+                      : `<button class="btn" data-act="cup" data-id="${id}" ${s.cash < c.unlock ? "disabled" : ""}>${tr("Buy", "Kharido")} · ${rs(c.unlock)}</button>`;
+    return `<div class="row"><div class="info"><b>${c.emoji} ${c.name}</b><br><small>${rs1(c.cost)}/cup · ${tr(`people pay ${Math.round((c.wtpMult - 1) * 100)}% more · +${Math.round(c.sat * 100)}% happiness`, `log ${Math.round((c.wtpMult - 1) * 100)}% zyada dene ko raazi · +${Math.round(c.sat * 100)}% khushi`)}<br>${c.blurb}</small></div><div class="btns">${btn}</div></div>`;
+  }).join("");
+  const staffCards = Object.entries(C.staff).map(([id, S]) => {
+    const on = s.staff[id], need = !on && S.minRep && s.rep < S.minRep ? tr(`Needs Reputation ${S.minRep}`, `Naam ${S.minRep} chahiye`) : "";
+    return `<div class="card"><div class="split"><div><h3>${S.emoji} ${S.name}</h3><small>${S.desc}<br>${tr("Wage", "Tankhwah")}: ${rs(S.wage)}/${tr("day", "din")}</small></div>
+      <div><button class="btn ${on ? "ghost" : ""}" data-act="staff" data-id="${id}" ${need ? "disabled" : ""}>${need || (on ? tr("Let go", "Chhutti do") : tr("Hire", "Rakho"))}</button></div></div></div>`;
+  }).join("");
+  shell(`
+    <div class="hint" style="margin-top:12px">${tr("Stove", "Chulha")}: <b>${P.batch}</b> ${tr("cups every", "cup har")} <b>${+P.serviceMin.toFixed(1)}</b> min · ~${capacityPerDay(s)} cups/${tr("day", "din")}</div>
+    <h3 style="margin:14px 2px 0">${tr("🔧 Equipment", "🔧 Saaz-o-saaman")}</h3>${group("Equipment")}
+    <h3 style="margin:14px 2px 0">🥤 Cups</h3><div class="card">${cupRows}</div>
+    <h3 style="margin:14px 2px 0">${tr("📣 Marketing", "📣 Prachar")}</h3>${group("Marketing")}
+    <h3 style="margin:14px 2px 0">🧑‍🤝‍🧑 Staff</h3>${staffCards}`);
+}
+
+/* ---------- TAB: records (v0.5) ---------- */
+function renderRecords() {
+  const s = state, C = CONFIG, S = s.stats, got = Object.keys(s.ach).length;
+  const num = n => Math.round(n).toLocaleString("en-IN");
+  const rec = [[tr("📅 Day", "📅 Din"), s.day], ["☕ Total cups", num(S.cups)], [tr("💥 Best day", "💥 Sabse achha din"), rs(S.bestProfit)], [tr("🏃 Most cups in a day", "🏃 Ek din mein cups"), S.bestDayCups],
+               [tr("💰 Peak cash", "💰 Sabse zyada gallu"), rs(S.peakCash)], [tr("⭐ Peak reputation", "⭐ Sabse zyada naam"), Math.round(S.peakRep)]];
+  const cards = C.achievements.map(a => {
+    const v = statValue(s, a.stat), done = !!s.ach[a.id], pct = Math.min(100, v / a.goal * 100), fmt = n => a.money ? rs(n) : num(n);
+    return `<div class="card ach ${done ? "done" : "lock"}"><div class="badge">${a.emoji}</div>
+      <div style="flex:1;min-width:0"><b>${a.name}</b><br><small>${a.desc}</small>
+        ${done ? `<br><span class="good">${tr(`✅ Unlocked on day ${s.ach[a.id]}`, `✅ Din ${s.ach[a.id]} par mila`)}</span>` : `<div class="meter"><i style="width:${pct}%"></i></div><small>${fmt(Math.min(v, a.goal))} / ${fmt(a.goal)}</small>`}</div></div>`;
+  }).join("");
+  shell(`<div class="card" style="margin-top:12px"><h3>${tr("📈 Your records", "📈 Tumhare records")}</h3><div class="recgrid">${rec.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div></div>
+    <h3 style="margin:14px 2px 0">🏆 Badges (${got}/${C.achievements.length})</h3>${cards}`);
+}
+
+/* ---------- overlays: settings + how-to-play ---------- */
+const overlayEl = document.createElement("div");
+overlayEl.id = "overlay";
+document.body.appendChild(overlayEl);
+function renderOverlay() {
+  const m = ui.modal;
+  overlayEl.classList.toggle("on", !!m);
+  if (!m) { overlayEl.innerHTML = ""; return; }
+  let body = "";
+  if (m === "settings") {
+    const tog = (key, label) => `<div class="line"><span>${label}</span><button class="btn ${settings[key] ? "sel" : "ghost"}" data-act="toggle" data-key="${key}">${settings[key] ? tr("On ✓", "Chalu ✓") : tr("Off", "Band")}</button></div>`;
+    const lang = `<div class="line"><span>🌐 Language</span><span style="display:flex;gap:6px"><button class="btn ${LANG === "en" ? "sel" : "ghost"}" data-act="lang" data-val="en" style="min-width:0">English</button><button class="btn ${LANG === "hi" ? "sel" : "ghost"}" data-act="lang" data-val="hi" style="min-width:0">Hinglish</button></span></div>`;
+    body = `<h2>⚙️ Settings</h2>${lang}${tog("sfx", tr("🔊 Sound effects", "🔊 Awaaz (sound effects)"))}${tog("music", tr("🎵 Background music", "🎵 Sangeet (background music)"))}
+      <div class="stack"><button class="btn" data-act="tutorial">${tr("📖 How to play", "📖 Kaise khelein?")}</button><button class="btn big" data-act="closeModal">${tr("Back to the game", "Wapas khel mein")}</button></div>
+      <div class="hint">Chaiwala Tycoon v0.5.1 · ${tr("progress saves automatically", "progress apne aap save hoti hai")}</div>`;
+  } else {
+    const T = CONFIG.tutorial, i = ui.tutStep, c = T[i], last = i === T.length - 1;
+    body = `<div class="tut"><div class="big">${c.emoji}</div><h2>${c.title}</h2><p>${c.text}</p>
+      <div class="dots">${T.map((_, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("")}</div></div>
+      <div class="stack"><button class="btn big" data-act="${last ? "closeModal" : "tutnext"}">${last ? tr("Got it, let's go!", "Samajh gaya, shuru karo!") : tr("Next →", "Aage →")}</button>
+      ${last ? "" : `<button class="btn ghost" data-act="closeModal">Skip</button>`}</div>`;
+  }
+  overlayEl.innerHTML = `<div class="scrim" data-act="closeModal"><div class="sheet" data-act="none">${body}</div></div>`;
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape" && ui.modal) { closeModal(); } });
+function closeModal() {
+  if (ui.modal === "tutorial" && !settings.tutorialDone) { settings.tutorialDone = true; saveSettings(); }
+  ui.modal = null; renderOverlay();
+}
+
+/* ---------- RUN SCREEN ---------- */
+function startDay() {
+  if (state.autoStock && state.staff.manager) managerStock(state);    // Munim ji does the shopping
+  store.save();
+  const result = simulateDay(dayInput(state), mulberry32(state.daySeed));   // seeded: reloading the game can't re-roll the day
+  ui.play = { result, t: 0, speedIdx: 0, evIdx: 0, timer: null, done: false };
+  ui.screen = "run";
+  renderRun();
+  ui.play.timer = setInterval(tick, CONFIG.tickMs);
+}
+
+const C_EV = id => { const e = CONFIG.events[id]; return e ? `${e.emoji} ${e.name}` : ""; };
+function renderRun() {
+  const R = ui.play.result, W = CONFIG.weathers[R.weather], L = CONFIG.locations[R.locId];
+  R.eventId = R.eventId ?? (eventNow(state) ? eventNow(state).id : null);
+  app.innerHTML = `
+    ${topbar()}
+    <div class="runwrap"><div class="runL">
+    <div class="scene">
+      ${sceneSVG(R.weather, R.locId, R.eventId)}
+      <div class="cap">${L.emoji} ${L.name.split(" (")[0]} · ${W.emoji} ${W.name}${R.eventId ? ` · ${C_EV(R.eventId)}` : ""}</div>
+      <div class="queue" id="queue"></div>
+    </div>
+    <div class="clock" id="clock">${fmtTime(0)}</div>
+    <div class="bar"><i id="progress"></i></div>
+    <div class="stats">
+      <div><small>${tr("Cups sold", "Cups bike")}</small><b id="cups">0</b></div>
+      <div><small>${tr("Earned", "Kamayi")}</small><b id="rev">₹0</b></div>
+      <div><small>${tr("In line", "Line mein")}</small><b id="qlen">0</b></div>
+    </div>
+    </div><div class="runR">
+    <div class="ticker" id="ticker"></div>
+    <div class="controls">
+      ${CONFIG.playbackSpeeds.map((_, i) => `<button class="btn ghost ${i === 0 ? "active" : ""}" data-act="speed" data-idx="${i}">${"▶".repeat(i + 1)}</button>`).join("")}
+      <button class="btn" data-act="skip">⏭ Skip</button>
+    </div></div></div>`;
+  audio.sfx("open");
+  audio.rain(R.weather === "rain");
+  updateRun();
+}
+
+function updateRun() {
+  const p = ui.play, R = p.result, tl = R.timeline, t = p.t;
+  document.getElementById("clock").textContent = fmtTime(t);
+  document.getElementById("progress").style.width = (t / R.minutes * 100) + "%";
+  document.getElementById("cups").textContent = tl.cups[t];
+  document.getElementById("rev").textContent = rs(tl.revenue[t]);
+  document.getElementById("qlen").textContent = tl.queue[t];
+  document.getElementById("kettle").classList.toggle("busy", tl.busy[t]);
+  // time of day: a pink-orange morning haze that clears, then an orange dusk towards closing time
+  const f = t / R.minutes, tod = document.getElementById("tod");
+  if (tod) { const dusk = f > 0.65; tod.setAttribute("fill", dusk ? "#ff8a3d" : "#ffc58a"); tod.setAttribute("opacity", (dusk ? Math.min(0.38, (f - 0.65) / 0.35 * 0.38) : f < 0.18 ? 0.3 * (1 - f / 0.18) : 0).toFixed(2)); }
+  // sounds: a ching for each new sale, a whistle when a batch finishes (only at normal speed)
+  if (tl.cups[t] > (p.lastCups || 0)) audio.sfx("ching");
+  if (p.lastBusy && !tl.busy[t] && p.speedIdx === 0) audio.sfx("whistle");
+  p.lastCups = tl.cups[t]; p.lastBusy = tl.busy[t];
+
+  const q = tl.queue[t], types = tl.queueTypes[t] || [];
+  let qs = types.map(id => CONFIG.customerTypes[id].emoji).join("");
+  if (q > types.length) qs += ` +${q - types.length}`;
+  document.getElementById("queue").textContent = qs;
+
+  const ticker = document.getElementById("ticker");
+  while (p.evIdx < R.events.length && R.events[p.evIdx].t <= t) {
+    const e = R.events[p.evIdx++];
+    const div = document.createElement("div");
+    div.className = e.type;
+    div.textContent = `${fmtTime(e.t)}  ${e.text}`;
+    ticker.prepend(div);
+    while (ticker.children.length > 7) ticker.lastChild.remove();
+  }
+}
+
+function tick() {
+  const p = ui.play;
+  if (!p || p.done) return;
+  p.t = Math.min(p.result.minutes, p.t + CONFIG.playbackSpeeds[p.speedIdx]);
+  updateRun();
+  if (p.t >= p.result.minutes) finishPlayback();
+}
+function finishPlayback() {
+  const p = ui.play;
+  if (p.done) return;
+  p.done = true;
+  clearInterval(p.timer);
+  audio.rain(false);
+  setTimeout(() => {
+    applyDay(state, p.result);     // also advances to the next morning (new day, new weather)
+    store.save();
+    ui.screen = "report";
+    renderReport();
+  }, 700);
+}
+
+/* ---------- REPORT SCREEN ---------- */
+function renderReport() {
+  const r = state.lastReport, C = CONFIG, W = C.weathers[r.weather], L = C.locations[r.locId];
+  const ratingText = r.avgSat === null ? "—" : `${moodFace(r.avgSat)} ${Math.round(r.avgSat * 100)}%`;
+  const stockLeft = Object.entries(C.ingredients)
+    .map(([k, ing]) => `${ing.emoji} ${Math.round(state.stock[k])} ${ing.unit}`).join(" · ");
+  const delta = r.repDelta;
+  const snackTags = Object.entries(r.snacksSold || {}).map(([id, n]) => `<span class="tag">${C.snacks[id].emoji} ${n}</span>`).join("");
+  const cutTag = r.halfCups > 0 ? `<span class="tag">✂️ ${r.halfCups} cutting</span>` : "";
+  const who = Object.entries(r.byType).sort((a, b) => b[1].cups - a[1].cups).filter(([, b]) => b.cups > 0)
+    .map(([id, b]) => `<span class="tag">${C.customerTypes[id].emoji} ${b.cups} · ${moodFace(b.sat / b.cups)}</span>`).join("");
+  app.innerHTML = `
+    ${topbar(r.day)}
+    <div class="content">
+    <div class="card verdict"><small>${tr(`Day ${r.day} report`, `Din ${r.day} ki report`)} · ${L.emoji} ${L.name.split(" (")[0]} · ${W.emoji} ${W.name}${r.eventId ? ` · ${C_EV(r.eventId)}` : ""}</small><h2>${verdictFor(r.profit)}</h2></div>
+
+    ${(r.newAch || []).map(id => { const a = C.achievements.find(x => x.id === id); return `<div class="card newach ach done"><div class="badge">${a.emoji}</div><div><small>${tr("🏆 New badge!", "🏆 Naya badge mila!")}</small><br><b>${a.name}</b><br><small>${a.desc}</small></div></div>`; }).join("")}
+
+    <div class="card"><h3>${tr("📊 The accounts", "📊 Hisaab-kitaab")}</h3>
+      <table class="table">
+        <tr><td>Cups sold</td><td>${r.cups}</td></tr>
+        <tr><td>Revenue</td><td>${rs(r.revenue)}</td></tr>
+        ${r.snackRevenue > 0 ? `<tr><td>&nbsp;&nbsp;↳ snacks</td><td>${rs(r.snackRevenue)}</td></tr>` : ""}
+        <tr><td>Ingredients + cups</td><td>− ${rs(r.cogs)}</td></tr>
+        <tr><td>Rent</td><td>− ${rs(r.rent)}</td></tr>
+        ${r.wages > 0 ? `<tr><td>Staff wages</td><td>− ${rs(r.wages)}</td></tr>` : ""}
+        <tr><td>Spoiled stock</td><td>− ${rs(r.spoiledCost)}</td></tr>
+        <tr class="total"><td>Profit</td><td class="${r.profit >= 0 ? "good" : "bad"}">${r.profit >= 0 ? "+" : ""}${rs(r.profit)}</td></tr>
+      </table>
+      <div class="hint">${tr(`${r.passed} people walked past`, `${r.passed} log guzre`)} · ${tr("total cups so far", "total cups so far")}: ${state.totalCups}</div>
+    </div>
+
+    <div class="card"><h3>${tr("👥 Who came by?", "👥 Kaun aaya?")}</h3><div class="tags">${who || "—"}${cutTag}${snackTags}</div></div>
+
+    <div class="card"><h3>${tr("⭐ Reputation", "⭐ Naam (Reputation)")}</h3>
+      <div>Customer satisfaction: <b>${ratingText}</b></div>
+      <div class="repbar"><i style="width:${state.rep}%"></i></div>
+      <div>${Math.round(r.repBefore)} → <b>${Math.round(r.repAfter)}</b>
+        <span class="${delta >= 0 ? "good" : "bad"}">(${delta >= 0 ? "+" : ""}${delta.toFixed(1)})</span></div>
+    </div>
+
+    <div class="card"><h3>🗣️ Customer feedback</h3>
+      <ul class="fb">${r.feedback.map(l => `<li>${l}</li>`).join("") || tr("<li>Nobody came today... 🦗</li>", "<li>Aaj koi nahi aaya... 🦗</li>")}</ul>
+    </div>
+
+    <div class="card"><h3>${tr("📦 Stock for tomorrow", "📦 Kal ke liye stock")}</h3><div>${stockLeft}</div></div>
+
+    </div>
+    <button class="btn big" data-act="next">${tr("Next day →", "Agla din →")}</button>`;
+  window.scrollTo(0, 0);
+  audio.sfx((r.newAch || []).length ? "ach" : r.profit > 0 ? "good" : "bad");
+}
+
+/* ---------- BANKRUPT SCREEN ---------- */
+function renderBankrupt() {
+  app.innerHTML = `
+    ${topbar()}
+    <div class="card verdict">
+      <h2>${tr("The stall is shutting down! 😢", "Dukaan band hone ki naubat! 😢")}</h2>
+      <p>${tr("No money, no stock. But a chaiwala never gives up!", "Na paisa bacha, na saaman. Par chaiwale haar nahi maante!")}</p>
+      <p>${tr(`Sharma uncle has offered you a <b>${rs(CONFIG.restartCash)}</b> loan to start over.`, `Sharma uncle ne offer kiya hai: <b>${rs(CONFIG.restartCash)}</b> udhaar, naye sire se shuru karo.`)}</p>
+      <p><small>${tr(`You sold ${state.totalCups} cups over ${state.day} days. Well done!`, `Din ${state.day} tak ${state.totalCups} cups becheen. Shabaash!`)}</small></p>
+    </div>
+    <button class="btn big" data-act="restart">${tr("🫖 Take the loan and start again", "🫖 Udhaar lo, fir shuru karo")}</button>`;
+}
+
+/* ---------- INPUT ---------- */
+function adjustRecipe(key, dir) {
+  const spec = CONFIG.recipe[key];
+  state.recipe[key] = clamp(state.recipe[key] + dir * spec.step, spec.min, spec.max);
+}
+function adjustPrice(dir) {
+  const P = CONFIG.price;
+  state.price = clamp(state.price + dir * P.step, P.min, P.max);
+}
+function nextDay() {                    // (the day counter already moved on inside applyDay)
+  if (isBankrupt(state)) { ui.screen = "bankrupt"; renderBankrupt(); }
+  else { ui.screen = "prepare"; renderPrepare(); window.scrollTo(0, 0); }
+}
+function restartGame() {
+  const keep = { ach: state.ach, stats: state.stats };          // badges and records survive a bankruptcy
+  state = newGame(CONFIG.restartCash, state.restarts + 1);
+  state.ach = keep.ach; state.stats = keep.stats;
+  ui.screen = "prepare"; ui.tab = "today";
+  store.save();
+  renderPrepare();
+}
+function resetGame() {                   // "Naya khel": needs two taps so it can't happen by accident
+  if (!ui.confirmReset) { ui.confirmReset = true; renderPrepare(); return; }
+  ui.confirmReset = false;
+  state = newGame(CONFIG.startCash);
+  ui.tab = "today";
+  store.save();
+  renderPrepare();
+  window.scrollTo(0, 0);
+}
+
+function onClick(e) {
+  const el = e.target.closest("[data-act]");
+  if (!el || el.disabled) return;
+  const d = el.dataset;
+  if (d.act === "none") return;
+  audio.unlock();                                              // browsers only allow sound after a tap
+  audio.sfx(["buy", "unlockLoc", "upgrade", "cup", "menuUnlock", "staff"].includes(d.act) ? "coin" : d.act === "open" ? "" : "tap");
+  switch (d.act) {
+    case "settings":   ui.modal = "settings"; renderOverlay(); break;
+    case "toggle":     settings[d.key] = !settings[d.key]; saveSettings(); audio.refresh(); if (settings[d.key]) audio.unlock(); renderOverlay(); break;
+    case "tutorial":   ui.modal = "tutorial"; ui.tutStep = 0; renderOverlay(); break;
+    case "lang":       if (d.val !== LANG) { settings.lang = d.val; saveSettings(); store.save(); location.reload(); } break;   // text is built at load, so reload
+    case "tutnext":    ui.tutStep++; renderOverlay(); break;
+    case "closeModal": closeModal(); break;
+    case "tab":       ui.tab = d.tab; renderPrepare(); window.scrollTo(0, 0); break;
+    case "buy":       buy(state, d.item, +d.packs); store.save(); renderPrepare(); break;
+    case "recipe":    adjustRecipe(d.key, +d.dir);  store.save(); renderPrepare(); break;
+    case "price":     adjustPrice(+d.dir);          store.save(); renderPrepare(); break;
+    case "loc":       if (state.unlockedLocs.includes(d.id)) { state.loc = d.id; store.save(); renderPrepare(); } break;
+    case "unlockLoc": unlockLocation(state, d.id); store.save(); renderPrepare(); break;
+    case "upgrade":   buyUpgrade(state, d.id); store.save(); renderPrepare(); break;
+    case "cup":       buyOrPickCup(state, d.id); store.save(); renderPrepare(); break;
+    case "evchoice":  resolveEvent(state, +d.i); store.save(); renderPrepare(); break;
+    case "menuUnlock": unlockMenu(state, d.id); store.save(); renderPrepare(); break;
+    case "snackprice": { const P = CONFIG.snackPrice; state.snackPrice[d.id] = clamp(snackPriceOf(state, d.id) + (+d.dir) * P.step, P.min, P.max); store.save(); renderPrepare(); break; }
+    case "staff":     toggleStaff(state, d.id); store.save(); renderPrepare(); break;
+    case "auto":      state.autoStock = !state.autoStock; store.save(); renderPrepare(); break;
+    case "manager":   managerStock(state); store.save(); renderPrepare(); break;
+    case "reset":     resetGame(); break;
+    case "open":      startDay(); break;
+    case "speed":
+      ui.play.speedIdx = +d.idx;
+      document.querySelectorAll(".controls [data-act=speed]").forEach((b, i) => b.classList.toggle("active", i === +d.idx));
+      break;
+    case "skip":      if (ui.play && !ui.play.done) { ui.play.t = ui.play.result.minutes; updateRun(); finishPlayback(); } break;
+    case "next":      nextDay(); break;
+    case "restart":   restartGame(); break;
+  }
+}
+app.addEventListener("click", onClick);
+overlayEl.addEventListener("click", onClick);
+// remember whether the notebook is open across re-renders ('toggle' doesn't bubble, so capture it)
+app.addEventListener("toggle", e => { if (e.target.id === "notebook") ui.notebookOpen = e.target.open; }, true);
+
+// start: continue the saved game if there is one, otherwise a fresh game
+state = store.load() || newGame(CONFIG.startCash);
+if (isBankrupt(state)) { ui.screen = "bankrupt"; renderBankrupt(); } else renderPrepare();
+if (!settings.tutorialDone && state.day === 1 && state.totalCups === 0) { ui.modal = "tutorial"; ui.tutStep = 0; }   // very first launch
+renderOverlay();
+</script>
+</body>
+</html>

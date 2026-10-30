@@ -1,0 +1,25 @@
+# Builds Windows, Mac and Linux installers in the cloud, so you don't need all three computers.
+# Run it from GitHub: Actions tab -> "Build desktop apps" -> Run workflow. Installers appear as downloads on the run.
+name: Build desktop apps
+on: workflow_dispatch
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install
+      - run: npx electron-builder --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false   # skip code-signing for now (see README)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chaiwala-tycoon-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
