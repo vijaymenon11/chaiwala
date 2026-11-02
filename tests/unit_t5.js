@@ -27,5 +27,5 @@ const old=JSON.parse(A.serializeState(A.newGame(500))); old.v=4; delete old.stat
 const mig=A.deserializeState(JSON.stringify(old)); ok(mig && mig.stats.cups===1500 && mig.stats.days===39 && mig.stats.peakCash===12000,'v4 save gets estimated records');
 ok(mig.ach.cups1000 && mig.ach.cash10k && mig.ach.famous && mig.ach.days30,'v4 save quietly earns badges it deserves');
 ok(!mig.ach.cups5000 && !mig.ach.lakhpati,'... but not ones it has not');
-ok(A.deserializeState(JSON.stringify({v:7,state:{}}))===null,'future save version rejected');
+ok(A.deserializeState(JSON.stringify({v:8,state:{}}))===null,'future save version rejected');
 console.log(fails?fails+' FAILURES':'ALL PASS'); process.exit(fails?1:0);

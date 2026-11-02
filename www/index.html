@@ -21,6 +21,11 @@
 
   /* top bar */
   .topbar{display:flex;gap:8px;position:sticky;top:0;z-index:5;padding:8px 0;background:var(--cream)}
+  /* campaign progress bar (shown below topbar in campaign runs) */
+  .campaign-bar{position:sticky;top:52px;z-index:4;background:var(--cream);padding:0 0 6px}
+  .cb-label{display:flex;justify-content:space-between;font-size:.75rem;color:#7a5c3a;margin-bottom:3px}
+  .cb-track{height:8px;background:#e4cba8;border-radius:4px;overflow:hidden}
+  .cb-fill{height:100%;background:var(--accent,#e67e22);border-radius:4px;transition:width .3s}
   .pill{flex:1;background:var(--brown);color:#fff;border-radius:14px;padding:6px 10px;text-align:center}
   .pill small{display:block;color:#f3d9a8;font-size:.7rem}
   .pill b{font-size:1.15rem}
@@ -317,10 +322,25 @@ const CONFIG = {
       weather: /*WEATHER:mumbai*/"SSHHSSSSSSSSSSSSHHHHSSSSHHSSSSSSSSCSSHHHHSHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHSHSSHSHSSSHHHHHSHHHHHHHHSSHHHSSSHSHHHHHHSSHHHHSHRRRSSSHHHHHSHCRCRCRRRRRRCRRRRRSRRRSSCRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRCRRCRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRSSSCRRRRRRRRRRRRRRRRRRRRCRSSSSSHHHHHHRHHHHRRRRRRRCCRRRRRSSSSHSSSSHHHHSSSHHHCSHSHHHSSCHHHHHHHHHSHSSHHHHHCSSCSSSSSSS"/*END*/ },
   },
 
+  // ---- campaign chapters ----
+  campaign: {
+    chapters: {
+      mumbai_1: {
+        city: "mumbai",
+        startDate: "2025-01-13",   // Monday 13 Jan 2025 — a mild winter day, gentle start
+        dayLimit: 60,
+        profitGoal: 15000,         // ₹15,000 cumulative profit to clear
+        name: tr("Mumbai — Chapter 1", "Mumbai — Pehla Adhyay"),
+        blurb: tr("Take over Chacha's cart at Dadar and make it famous. Earn ₹15,000 profit in 60 days.",
+                  "Dadar mein Chacha ki rehdi sambhalo aur mashoor karo. 60 dinon mein ₹15,000 munafa kamao."),
+      },
+    },
+  },
+
   saveKey: "chaiwala-tycoon-save",          // legacy single-slot key (migrated to slot 1 on first load)
   saveKeyBase: "chaiwala-tycoon-save-",     // slot keys: saveKeyBase + slotNumber (1, 2, 3)
   numSlots: 3,
-  saveVersion: 6,
+  saveVersion: 7,
   settingsKey: "chaiwala-tycoon-settings",   // sound on/off + "tutorial seen" (kept even when you start a new game)
   minLoadableVersion: 2,    // older saves from these versions are upgraded instead of thrown away
 
@@ -579,6 +599,9 @@ function newGame(cash, restarts = 0, opts = {}) {
     buyRate: {},                                    // locationId -> share of passers-by who bought a cup (the manager learns this)
     // v0.6: city games follow the real calendar from startDate ("YYYY-MM-DD"); city null = classic free play
     city: opts.city || null, startDate: opts.city ? (opts.startDate || CONFIG.cities[opts.city].startDates[0].date) : null,
+    // v0.7: campaign mode — chapterId if this is a campaign run, else null; cumulativeProfit tracks chapter goal
+    campaign: opts.campaign || null,
+    cumulativeProfit: 0,
     // v0.5
     stats: newStats(),                              // lifetime counters for the Records tab / achievements
     ach: {},                                        // achievementId -> day it was unlocked
@@ -1276,6 +1299,7 @@ function applyDay(st, r) {
   st.cash += r.revenue - r.rent - r.cupCostTotal - r.wages;       // stock was paid for when you bought it
   st.rep = r.repAfter;
   st.totalCups += r.cups;
+  st.cumulativeProfit = (st.cumulativeProfit || 0) + r.profit;    // v0.7: track towards campaign goal
   recordStats(st, r);
   st.lastReport = r;
   st.day++;
@@ -1359,6 +1383,8 @@ function deserializeState(text) {
     if (st.city && !CONFIG.cities[st.city]) st.city = null;                  // v0.6: city games remember their calendar
     if (st.city && !/^\d{4}-\d{2}-\d{2}$/.test(st.startDate || "")) st.startDate = CONFIG.cities[st.city].startDates[0].date;
     if (!st.city) st.startDate = null;
+    if (!st.campaign || !CONFIG.campaign.chapters[st.campaign]) st.campaign = null;   // v0.7: campaign chapter id
+    if (!Number.isFinite(st.cumulativeProfit)) st.cumulativeProfit = 0;
     if (!st.menu.includes("masala")) st.recipe.spice = 0;
     // v0.5: records. Older saves get their lifetime numbers estimated from what they already have.
     const hadStats = !!(o.state.stats && typeof o.state.stats === "object");
@@ -1371,6 +1397,18 @@ function deserializeState(text) {
     return st;
   } catch (e) { return null; }
 }
+
+/* ---------- campaign helpers ---------- */
+/** True if this is a campaign run. */
+const isCampaign = st => !!(st.campaign && CONFIG.campaign.chapters[st.campaign]);
+/** The chapter config for the current campaign run, or null. */
+const chapterOf = st => isCampaign(st) ? CONFIG.campaign.chapters[st.campaign] : null;
+/** Days remaining in the chapter (could be 0 on the last morning before the run ends). */
+const daysLeft = st => { const ch = chapterOf(st); return ch ? Math.max(0, ch.dayLimit - st.day + 1) : null; };
+/** true when the profit goal has been reached. */
+const goalMet = st => { const ch = chapterOf(st); return ch ? st.cumulativeProfit >= ch.profitGoal : false; };
+/** true when the day limit has been reached without meeting the goal. */
+const chapterFailed = st => { const ch = chapterOf(st); return ch && !goalMet(st) && st.day > ch.dayLimit; };
 
 /* ==== LOGIC END (the Node test harness cuts the file here) ==== */
 
@@ -1397,12 +1435,17 @@ const store = {
       const raw = (() => { try { return JSON.parse(localStorage.getItem(this._key(n)) || "null"); } catch (e) { return null; } })();
       if (!raw || !raw.state || raw.v < C.minLoadableVersion) return { slot: n, empty: true };
       const s = raw.state;
+      const ch = s.campaign ? C.campaign.chapters[s.campaign] : null;
       return {
         slot: n, empty: false,
         day: s.day || 1,
         cash: s.cash || 0,
         city: s.city || null,
         cityName: s.city ? (C.cities[s.city] ? C.cities[s.city].name : s.city) : null,
+        campaign: s.campaign || null,
+        cumulativeProfit: s.cumulativeProfit || 0,
+        profitGoal: ch ? ch.profitGoal : null,
+        dayLimit: ch ? ch.dayLimit : null,
       };
     });
   },
@@ -1614,12 +1657,21 @@ function fmtTime(t) {
 const milkLabel = p => p <= 30 ? tr("Light milk", "Halka doodh") : p <= 50 ? tr("Some milk", "Thoda doodh") : p <= 70 ? tr("Creamy", "Malaidaar") : tr("Extra creamy", "Ekdum malai");
 
 function topbar(day = state.day) {
+  const ch = chapterOf(state);
+  const campaignBar = ch ? (() => {
+    const pct = Math.min(100, Math.round((state.cumulativeProfit / ch.profitGoal) * 100));
+    const dl = Math.max(0, ch.dayLimit - day + 1);
+    return `<div class="campaign-bar">
+      <div class="cb-label"><span>📖 ${tr(`Ch.1 · ${dl}d left`, `Ch.1 · ${dl} din bacha`)}</span><span>${rs(Math.max(0, state.cumulativeProfit))} / ${rs(ch.profitGoal)}</span></div>
+      <div class="cb-track"><div class="cb-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  })() : "";
   return `<div class="topbar">
     <div class="pill"><small>${tr("Day", "Din")}</small><b>${day}</b></div>
     <div class="pill"><small>${tr("Cash", "Gallu (cash)")}</small><b class="${state.cash < 0 ? "neg" : ""}">${rs(state.cash)}</b></div>
     <div class="pill"><small>${tr("Reputation", "Naam (reputation)")}</small><b>${Math.round(state.rep)}/100</b></div>
     <button class="gear" data-act="settings" aria-label="Settings">⚙️</button>
-  </div>`;
+  </div>${campaignBar}`;
 }
 
 const TABS = [
@@ -2096,6 +2148,39 @@ function renderBankrupt() {
     <button class="btn big" data-act="restart">${tr("🫖 Take the loan and start again", "🫖 Udhaar lo, fir shuru karo")}</button>`;
 }
 
+/* ---------- CHAPTER CLEAR SCREEN ---------- */
+function renderChapterClear() {
+  const ch = chapterOf(state);
+  app.innerHTML = `
+    ${topbar()}
+    <div class="card verdict" style="text-align:center;padding:28px 20px">
+      <div style="font-size:3rem">🏆</div>
+      <h2 style="margin:10px 0 6px">${tr("Chapter Clear!", "Adhyay Poora!")}</h2>
+      <p>${tr(`You earned ${rs(Math.round(state.cumulativeProfit))} profit in ${state.day - 1} days.`, `${state.day - 1} dinon mein ${rs(Math.round(state.cumulativeProfit))} ka munafa kamaya.`)}</p>
+      <p>${tr("Raju's stall is the talk of the neighbourhood. Chacha would be proud.", "Raju ki rehdi ka charcha har taraf hai. Chacha ko fakhr hoga.")}</p>
+      <p><small>${tr("Your badges and records are saved. More chapters coming soon!", "Tumhare badges aur records save ho gaye hain. Aage aur adhyay aane wale hain!")}</small></p>
+    </div>
+    <button class="btn big" data-act="chaptercontinue">${tr("Keep playing (Free Play) →", "Khelte raho (Free Play) →")}</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" data-act="switchslot">${tr("Go to game menu", "Game menu mein jao")}</button>`;
+}
+
+/* ---------- CHAPTER FAIL SCREEN ---------- */
+function renderChapterFail() {
+  const ch = chapterOf(state);
+  const shortfall = Math.max(0, ch.profitGoal - state.cumulativeProfit);
+  app.innerHTML = `
+    ${topbar()}
+    <div class="card verdict" style="text-align:center;padding:28px 20px">
+      <div style="font-size:3rem">😔</div>
+      <h2 style="margin:10px 0 6px">${tr("Time's up!", "Waqt khatam!")}</h2>
+      <p>${tr(`You needed ${rs(shortfall)} more profit in 60 days. So close!`, `60 dinon mein ${rs(shortfall)} aur chahiye tha. Bahut qareeb the!`)}</p>
+      <p>${tr("Chacha says: even the best chaiwala has a tough season. Try again!", "Chacha kehte hain: achhe se achhe chaiwale ka ek mausam kharab jaata hai. Dobara koshish karo!")}</p>
+      <p><small>${tr("Your badges and records are saved.", "Tumhare badges aur records save ho gaye hain.")}</small></p>
+    </div>
+    <button class="btn big" data-act="chapterretry">${tr("🔄 Try again from Day 1", "🔄 Din 1 se dobara shuru karo")}</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" data-act="switchslot">${tr("Go to game menu", "Game menu mein jao")}</button>`;
+}
+
 /* ---------- INPUT ---------- */
 function adjustRecipe(key, dir) {
   const spec = CONFIG.recipe[key];
@@ -2107,6 +2192,8 @@ function adjustPrice(dir) {
 }
 function nextDay() {                    // (the day counter already moved on inside applyDay)
   if (isBankrupt(state)) { ui.screen = "bankrupt"; renderBankrupt(); }
+  else if (goalMet(state)) { ui.screen = "chapterclear"; renderChapterClear(); }
+  else if (chapterFailed(state)) { ui.screen = "chapterfail"; renderChapterFail(); }
   else { ui.screen = "prepare"; renderPrepare(); window.scrollTo(0, 0); }
 }
 function restartGame() {
@@ -2132,8 +2219,11 @@ function renderSlotPicker(mode) {
       info = `<span style="opacity:.55">${tr("Empty", "Khali")}</span>`;
       actions = `<button class="btn ghost" data-act="pickslot" data-slot="${m.slot}" data-slotmode="new">${tr("New game here", "Yahan naya khel")}</button>`;
     } else {
-      const modeLabel = m.city ? `🌆 ${m.cityName}` : tr("🫖 Classic", "🫖 Classic");
-      info = `${modeLabel} · ${tr(`Day ${m.day}`, `Din ${m.day}`)} · ₹${m.cash.toLocaleString("en-IN")}`;
+      const modeLabel = m.campaign ? `📖 ${tr("Campaign", "Campaign")}` : m.city ? `🌆 ${m.cityName}` : tr("🫖 Classic", "🫖 Classic");
+      const campaignProg = m.campaign && m.profitGoal
+        ? ` · ${rs(Math.max(0, m.cumulativeProfit))}/${rs(m.profitGoal)} · ${tr(`${Math.max(0,m.dayLimit-m.day+1)}d left`, `${Math.max(0,m.dayLimit-m.day+1)} din bacha`)}`
+        : "";
+      info = `${modeLabel} · ${tr(`Day ${m.day}`, `Din ${m.day}`)}${campaignProg} · ₹${m.cash.toLocaleString("en-IN")}`;
       actions = `<button class="btn${active && mode === "load" ? " sel" : ""}" data-act="pickslot" data-slot="${m.slot}" data-slotmode="continue">${active && mode === "load" ? tr("▶ Continue", "▶ Jaari rakho") : tr("Load", "Load karo")}</button>
         <button class="btn ghost" data-act="pickslot" data-slot="${m.slot}" data-slotmode="new" style="margin-left:6px">${tr("New game", "Naya khel")}</button>
         ${ui._confirmDelete === m.slot
@@ -2154,25 +2244,36 @@ function renderSlotPicker(mode) {
   window.scrollTo(0, 0);
 }
 
-/** "New game": choose classic free play or a city. Nothing is erased until a choice is made. */
+/** "New game": choose campaign, city free play, or classic. Nothing is erased until a choice is made. */
 function renderNewGame() {
   ui.screen = "newgame";
   const C = CONFIG;
+  // Campaign section — one card per chapter
+  const campaignCards = Object.entries(C.campaign.chapters).map(([id, ch]) =>
+    `<div class="card" style="border-left:4px solid var(--accent,#e67e22)">
+      <h3>📖 ${ch.name}</h3><small>${ch.blurb}</small>
+      <div class="choices"><button class="btn" data-act="startgame" data-campaign="${id}" data-city="" data-date="">${tr("▶ Start Campaign", "▶ Campaign shuru karo")}</button></div>
+    </div>`).join("");
   const cities = Object.entries(C.cities).map(([id, c]) => `<div class="card"><h3>${c.emoji} ${c.name}</h3><small>${c.blurb}</small>
       <small><br>${tr("Real weather for the date and real festivals. Pick where in the year you start:", "Asli mausam aur asli tyohaar. Saal mein kahan se shuru karoge?")}</small>
-      <div class="choices">${c.startDates.map(d => `<button class="btn" data-act="startgame" data-city="${id}" data-date="${d.date}">${d.label}</button>`).join("")}</div></div>`).join("");
+      <div class="choices">${c.startDates.map(d => `<button class="btn" data-act="startgame" data-city="${id}" data-date="${d.date}" data-campaign="">${d.label}</button>`).join("")}</div></div>`).join("");
   const slotLabel = tr(`Slot ${settings.activeSlot}`, `Slot ${settings.activeSlot}`);
   app.innerHTML = `${topbar()}<div class="content">
     <div class="hint" style="margin-top:12px">${tr(`⚠️ This will replace ${slotLabel}. Other slots are not affected.`, `⚠️ Yeh ${slotLabel} ko replace karega. Doosre slots safe rahenge.`)}</div>
-    <h3 style="margin:14px 2px 0">${tr("🌆 Play in a city", "🌆 Shehar mein khelo")}</h3>${cities}
+    <h3 style="margin:14px 2px 0">${tr("📖 Campaign", "📖 Campaign")}</h3>${campaignCards}
+    <h3 style="margin:14px 2px 0">${tr("🌆 City free play", "🌆 Shehar mein Free Play")}</h3>${cities}
     <h3 style="margin:14px 2px 0">${tr("🫖 Classic free play", "🫖 Classic free play")}</h3>
     <div class="card"><small>${tr("The original game: random weather in 10-day seasons, random festivals, no real calendar.", "Original khel: 10-din ke mausam, random tyohaar, koi asli calendar nahi.")}</small>
-      <div class="choices"><button class="btn ghost" data-act="startgame" data-city="" data-date="">${tr("Start classic game", "Classic khel shuru karo")}</button></div></div></div>
+      <div class="choices"><button class="btn ghost" data-act="startgame" data-city="" data-date="" data-campaign="">${tr("Start classic game", "Classic khel shuru karo")}</button></div></div></div>
     <button class="btn ghost" data-act="cancelnew" style="width:100%;margin-top:6px">${tr("← Back", "← Wapas")}</button>`;
   window.scrollTo(0, 0);
 }
-function startNewGame(city, date) {
-  state = newGame(CONFIG.startCash, 0, { city: city || null, startDate: date || null });
+function startNewGame(city, date, campaign) {
+  // campaign mode: use the chapter's fixed city and startDate
+  const ch = campaign ? CONFIG.campaign.chapters[campaign] : null;
+  const resolvedCity = ch ? ch.city : (city || null);
+  const resolvedDate = ch ? ch.startDate : (date || null);
+  state = newGame(CONFIG.startCash, 0, { city: resolvedCity, startDate: resolvedDate, campaign: campaign || null });
   ui.tab = "today"; ui.screen = "prepare";
   store.save();
   renderPrepare();
@@ -2214,7 +2315,25 @@ function onClick(e) {
     case "reset":     renderSlotPicker("new"); break;
     case "switchslot": renderSlotPicker("load"); break;
     case "newgame":   ui.modal = null; renderOverlay(); renderSlotPicker("new"); break;
-    case "startgame": startNewGame(d.city, d.date); break;
+    case "startgame": startNewGame(d.city, d.date, d.campaign); break;
+    case "chaptercontinue": {
+      // strip campaign flag — keep playing as free play in the same city
+      state.campaign = null;
+      store.save();
+      ui.screen = "prepare"; ui.tab = "today";
+      renderPrepare(); window.scrollTo(0, 0);
+      break;
+    }
+    case "chapterretry": {
+      // restart the same chapter from day 1, keep badges/records
+      const keep = { ach: state.ach, stats: state.stats };
+      const ch = chapterOf(state);
+      state = newGame(CONFIG.startCash, 0, { city: ch.city, startDate: ch.startDate, campaign: state.campaign });
+      state.ach = keep.ach; state.stats = keep.stats;
+      ui.screen = "prepare"; ui.tab = "today";
+      store.save(); renderPrepare(); window.scrollTo(0, 0);
+      break;
+    }
     case "cancelnew": if (ui.screen === "slotpicker") { ui.screen = "prepare"; renderPrepare(); } else renderSlotPicker("new"); break;
     case "pickslot": {
       const n = +d.slot;
