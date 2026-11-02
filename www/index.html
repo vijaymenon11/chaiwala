@@ -317,7 +317,9 @@ const CONFIG = {
       weather: /*WEATHER:mumbai*/"SSHHSSSSSSSSSSSSHHHHSSSSHHSSSSSSSSCSSHHHHSHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHSHSSHSHSSSHHHHHSHHHHHHHHSSHHHSSSHSHHHHHHSSHHHHSHRRRSSSHHHHHSHCRCRCRRRRRRCRRRRRSRRRSSCRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRCRRCRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRSSSCRRRRRRRRRRRRRRRRRRRRCRSSSSSHHHHHHRHHHHRRRRRRRCCRRRRRSSSSHSSSSHHHHSSSHHHCSHSHHHSSCHHHHHHHHHSHSSHHHHHCSSCSSSSSSS"/*END*/ },
   },
 
-  saveKey: "chaiwala-tycoon-save",
+  saveKey: "chaiwala-tycoon-save",          // legacy single-slot key (migrated to slot 1 on first load)
+  saveKeyBase: "chaiwala-tycoon-save-",     // slot keys: saveKeyBase + slotNumber (1, 2, 3)
+  numSlots: 3,
   saveVersion: 6,
   settingsKey: "chaiwala-tycoon-settings",   // sound on/off + "tutorial seen" (kept even when you start a new game)
   minLoadableVersion: 2,    // older saves from these versions are upgraded instead of thrown away
@@ -1378,15 +1380,47 @@ function deserializeState(text) {
 const app = document.getElementById("app");
 const ui = { screen: "prepare", tab: "today", play: null, notebookOpen: false, confirmReset: false, modal: null, tutStep: 0 };
 
-/** Save/load in the browser (localStorage). Wrapped in try/catch: private windows can block it; the game still works. */
+/** Save/load in the browser (localStorage). Wrapped in try/catch: private windows can block it; the game still works.
+ *  Slots 1–3 each have their own key. settings.activeSlot tracks which is in use. */
 const store = {
-  save() { try { localStorage.setItem(CONFIG.saveKey, serializeState(state)); } catch (e) {} },
-  load() { try { return deserializeState(localStorage.getItem(CONFIG.saveKey) || ""); } catch (e) { return null; } },
-  clear() { try { localStorage.removeItem(CONFIG.saveKey); } catch (e) {} },
+  _key(n) { return CONFIG.saveKeyBase + n; },
+  save()  { try { localStorage.setItem(this._key(settings.activeSlot), serializeState(state)); } catch (e) {} },
+  load()  { try { return deserializeState(localStorage.getItem(this._key(settings.activeSlot)) || ""); } catch (e) { return null; } },
+  clear() { try { localStorage.removeItem(this._key(settings.activeSlot)); } catch (e) {} },
+  /** Load a specific slot without changing the active slot. Returns state or null. */
+  loadSlot(n) { try { return deserializeState(localStorage.getItem(this._key(n)) || ""); } catch (e) { return null; } },
+  /** Return lightweight summary info for all slots (for the picker UI). Never fully deserialises. */
+  allSlotMeta() {
+    const C = CONFIG;
+    return Array.from({ length: C.numSlots }, (_, i) => {
+      const n = i + 1;
+      const raw = (() => { try { return JSON.parse(localStorage.getItem(this._key(n)) || "null"); } catch (e) { return null; } })();
+      if (!raw || !raw.state || raw.v < C.minLoadableVersion) return { slot: n, empty: true };
+      const s = raw.state;
+      return {
+        slot: n, empty: false,
+        day: s.day || 1,
+        cash: s.cash || 0,
+        city: s.city || null,
+        cityName: s.city ? (C.cities[s.city] ? C.cities[s.city].name : s.city) : null,
+      };
+    });
+  },
+  /** Migrate the old single-slot save into slot 1 if slot 1 is empty. */
+  migrateLegacy() {
+    try {
+      const legacy = localStorage.getItem(CONFIG.saveKey);
+      if (!legacy) return;
+      if (!localStorage.getItem(this._key(1))) {
+        localStorage.setItem(this._key(1), legacy);
+      }
+      localStorage.removeItem(CONFIG.saveKey);
+    } catch (e) {}
+  },
 };
 
 /** Player settings live outside the save file so "Naya khel" doesn't undo them. */
-const settings = Object.assign({ sfx: true, music: true, tutorialDone: false }, (() => {
+const settings = Object.assign({ sfx: true, music: true, tutorialDone: false, activeSlot: 1 }, (() => {
   try { return JSON.parse(localStorage.getItem(CONFIG.settingsKey) || "{}") || {}; } catch (e) { return {}; }
 })());
 const saveSettings = () => { try { localStorage.setItem(CONFIG.settingsKey, JSON.stringify(settings)); } catch (e) {} };
@@ -1767,8 +1801,9 @@ function renderToday() {
       </ul>
     </details></div>
 
-    <div class="hint">${tr("✅ Progress saves automatically", "✅ Progress auto-save hoti hai")} · v0.6<br>
-      <button class="btn ghost" data-act="reset" style="margin-top:8px">${tr("🆕 New game…", "🆕 Naya khel…")}</button></div>`);
+    <div class="hint">${tr("✅ Progress saves automatically", "✅ Progress auto-save hoti hai")} · ${tr(`Slot ${settings.activeSlot}`, `Slot ${settings.activeSlot}`)} · v0.6<br>
+      <button class="btn ghost" data-act="reset" style="margin-top:8px">${tr("🆕 New game…", "🆕 Naya khel…")}</button>
+      <button class="btn ghost" data-act="switchslot" style="margin-top:8px;margin-left:6px">${tr("🔀 Switch game", "🔀 Game badlo")}</button></div>`);
 }
 
 /* ---------- TAB: places ---------- */
@@ -2082,6 +2117,43 @@ function restartGame() {
   store.save();
   renderPrepare();
 }
+/** Slot picker: shown on startup (if >1 slot has data) or when "New game" is tapped.
+ *  mode: "load" (startup) | "new" (replacing current slot) */
+function renderSlotPicker(mode) {
+  ui.screen = "slotpicker";
+  ui._slotPickerMode = mode;
+  const metas = store.allSlotMeta();
+  const hasMultiple = metas.filter(m => !m.empty).length > 0;
+  const cards = metas.map(m => {
+    const active = m.slot === settings.activeSlot;
+    const label = tr(`Slot ${m.slot}`, `Slot ${m.slot}`);
+    let info, actions;
+    if (m.empty) {
+      info = `<span style="opacity:.55">${tr("Empty", "Khali")}</span>`;
+      actions = `<button class="btn ghost" data-act="pickslot" data-slot="${m.slot}" data-slotmode="new">${tr("New game here", "Yahan naya khel")}</button>`;
+    } else {
+      const modeLabel = m.city ? `🌆 ${m.cityName}` : tr("🫖 Classic", "🫖 Classic");
+      info = `${modeLabel} · ${tr(`Day ${m.day}`, `Din ${m.day}`)} · ₹${m.cash.toLocaleString("en-IN")}`;
+      actions = `<button class="btn${active && mode === "load" ? " sel" : ""}" data-act="pickslot" data-slot="${m.slot}" data-slotmode="continue">${active && mode === "load" ? tr("▶ Continue", "▶ Jaari rakho") : tr("Load", "Load karo")}</button>
+        <button class="btn ghost" data-act="pickslot" data-slot="${m.slot}" data-slotmode="new" style="margin-left:6px">${tr("New game", "Naya khel")}</button>
+        ${ui._confirmDelete === m.slot
+          ? `<button class="btn ghost" data-act="deleteslot" data-slot="${m.slot}" style="margin-left:6px;color:var(--red,#c0392b)">${tr("Sure? Tap again to delete", "Pakka? Dobara tap karo")}</button>`
+          : `<button class="btn ghost" data-act="deleteslot" data-slot="${m.slot}" style="margin-left:6px;opacity:.65">🗑</button>`}`;
+    }
+    return `<div class="card" style="${active ? "border:2px solid var(--accent,#e67e22)" : ""}">
+      <div class="split"><b>${label}${active ? " ✦" : ""}</b><small>${info}</small></div>
+      <div style="margin-top:10px">${actions}</div></div>`;
+  }).join("");
+  const backBtn = mode === "new"
+    ? `<button class="btn ghost" data-act="cancelnew" style="width:100%;margin-top:6px">${tr("← Back to my game", "← Apne khel mein wapas")}</button>`
+    : "";
+  app.innerHTML = `${topbar()}<div class="content">
+    <h3 style="margin:14px 2px 6px">${tr("Your games", "Tumhare khel")}</h3>
+    <div class="hint" style="margin-bottom:10px">${tr("Pick a slot to continue or start fresh. Each slot is a separate game.", "Koi slot chuno — jaari rakho ya nayi shuruat karo. Har slot alag khel hai.")}</div>
+    ${cards}${backBtn}</div>`;
+  window.scrollTo(0, 0);
+}
+
 /** "New game": choose classic free play or a city. Nothing is erased until a choice is made. */
 function renderNewGame() {
   ui.screen = "newgame";
@@ -2089,13 +2161,14 @@ function renderNewGame() {
   const cities = Object.entries(C.cities).map(([id, c]) => `<div class="card"><h3>${c.emoji} ${c.name}</h3><small>${c.blurb}</small>
       <small><br>${tr("Real weather for the date and real festivals. Pick where in the year you start:", "Asli mausam aur asli tyohaar. Saal mein kahan se shuru karoge?")}</small>
       <div class="choices">${c.startDates.map(d => `<button class="btn" data-act="startgame" data-city="${id}" data-date="${d.date}">${d.label}</button>`).join("")}</div></div>`).join("");
+  const slotLabel = tr(`Slot ${settings.activeSlot}`, `Slot ${settings.activeSlot}`);
   app.innerHTML = `${topbar()}<div class="content">
-    <div class="hint" style="margin-top:12px">${tr("⚠️ Starting a new game replaces your current one.", "⚠️ Naya khel shuru karne par abhi wala khel mit jayega.")}</div>
+    <div class="hint" style="margin-top:12px">${tr(`⚠️ This will replace ${slotLabel}. Other slots are not affected.`, `⚠️ Yeh ${slotLabel} ko replace karega. Doosre slots safe rahenge.`)}</div>
     <h3 style="margin:14px 2px 0">${tr("🌆 Play in a city", "🌆 Shehar mein khelo")}</h3>${cities}
     <h3 style="margin:14px 2px 0">${tr("🫖 Classic free play", "🫖 Classic free play")}</h3>
     <div class="card"><small>${tr("The original game: random weather in 10-day seasons, random festivals, no real calendar.", "Original khel: 10-din ke mausam, random tyohaar, koi asli calendar nahi.")}</small>
       <div class="choices"><button class="btn ghost" data-act="startgame" data-city="" data-date="">${tr("Start classic game", "Classic khel shuru karo")}</button></div></div></div>
-    <button class="btn ghost" data-act="cancelnew" style="width:100%;margin-top:6px">${tr("← Back to my game", "← Apne khel mein wapas")}</button>`;
+    <button class="btn ghost" data-act="cancelnew" style="width:100%;margin-top:6px">${tr("← Back", "← Wapas")}</button>`;
   window.scrollTo(0, 0);
 }
 function startNewGame(city, date) {
@@ -2104,6 +2177,8 @@ function startNewGame(city, date) {
   store.save();
   renderPrepare();
   window.scrollTo(0, 0);
+  // show tutorial only on the very first ever game (day 1, no cups played, never seen tutorial)
+  if (!settings.tutorialDone && state.day === 1 && state.totalCups === 0) { ui.modal = "tutorial"; ui.tutStep = 0; renderOverlay(); }
 }
 const resetGame = renderNewGame;
 
@@ -2136,10 +2211,48 @@ function onClick(e) {
     case "staff":     toggleStaff(state, d.id); store.save(); renderPrepare(); break;
     case "auto":      state.autoStock = !state.autoStock; store.save(); renderPrepare(); break;
     case "manager":   managerStock(state); store.save(); renderPrepare(); break;
-    case "reset":     renderNewGame(); break;
-    case "newgame":   ui.modal = null; renderOverlay(); renderNewGame(); break;
+    case "reset":     renderSlotPicker("new"); break;
+    case "switchslot": renderSlotPicker("load"); break;
+    case "newgame":   ui.modal = null; renderOverlay(); renderSlotPicker("new"); break;
     case "startgame": startNewGame(d.city, d.date); break;
-    case "cancelnew": ui.screen = "prepare"; renderPrepare(); break;
+    case "cancelnew": if (ui.screen === "slotpicker") { ui.screen = "prepare"; renderPrepare(); } else renderSlotPicker("new"); break;
+    case "pickslot": {
+      const n = +d.slot;
+      if (d.slotmode === "continue") {
+        const loaded = store.loadSlot(n);
+        if (loaded) {
+          settings.activeSlot = n; saveSettings();
+          state = loaded;
+          ui.screen = isBankrupt(state) ? "bankrupt" : "prepare";
+          ui.tab = "today";
+          if (isBankrupt(state)) renderBankrupt(); else renderPrepare();
+        }
+      } else {
+        // new game in this slot: switch to it, then show the game-type chooser
+        settings.activeSlot = n; saveSettings();
+        renderNewGame();
+      }
+      break;
+    }
+    case "deleteslot": {
+      const n = +d.slot;
+      if (ui._confirmDelete === n) {
+        // second tap: confirmed
+        try { localStorage.removeItem(store._key(n)); } catch (e) {}
+        if (settings.activeSlot === n) {
+          // find another occupied slot to switch to, else stay on n
+          const other = store.allSlotMeta().find(m => m.slot !== n && !m.empty);
+          settings.activeSlot = other ? other.slot : n;
+          saveSettings();
+        }
+        ui._confirmDelete = null;
+        renderSlotPicker(ui._slotPickerMode || "load");
+      } else {
+        ui._confirmDelete = n;
+        renderSlotPicker(ui._slotPickerMode || "load");
+      }
+      break;
+    }
     case "open":      startDay(); break;
     case "speed":
       ui.play.speedIdx = +d.idx;
@@ -2155,10 +2268,28 @@ overlayEl.addEventListener("click", onClick);
 // remember whether the notebook is open across re-renders ('toggle' doesn't bubble, so capture it)
 app.addEventListener("toggle", e => { if (e.target.id === "notebook") ui.notebookOpen = e.target.open; }, true);
 
-// start: continue the saved game if there is one, otherwise a fresh game
-state = store.load() || newGame(CONFIG.startCash);
-if (isBankrupt(state)) { ui.screen = "bankrupt"; renderBankrupt(); } else renderPrepare();
-if (!settings.tutorialDone && state.day === 1 && state.totalCups === 0) { ui.modal = "tutorial"; ui.tutStep = 0; }   // very first launch
+// start: migrate any old single-slot save, then show slot picker or jump straight in.
+store.migrateLegacy();
+// If more than one slot has data, show the picker so the player can choose.
+// If exactly one slot has data (or all are empty), jump straight into that slot (or a fresh game).
+{
+  const metas = store.allSlotMeta();
+  const occupied = metas.filter(m => !m.empty);
+  if (occupied.length > 1) {
+    // Multiple saves exist — let the player choose
+    state = store.load() || newGame(CONFIG.startCash);  // pre-load active slot so topbar can render
+    renderSlotPicker("load");
+  } else {
+    // 0 or 1 save: pick the single occupied slot (if any), or stay on slot 1
+    if (occupied.length === 1 && occupied[0].slot !== settings.activeSlot) {
+      settings.activeSlot = occupied[0].slot;
+      saveSettings();
+    }
+    state = store.load() || newGame(CONFIG.startCash);
+    if (isBankrupt(state)) { ui.screen = "bankrupt"; renderBankrupt(); } else renderPrepare();
+    if (!settings.tutorialDone && state.day === 1 && state.totalCups === 0) { ui.modal = "tutorial"; ui.tutStep = 0; }
+  }
+}
 renderOverlay();
 </script>
 </body>
